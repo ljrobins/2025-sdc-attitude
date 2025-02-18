@@ -1,0 +1,76 @@
+%%
+%% This is file `esapub.tex',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% esapub.dtx  (with options: `manual')
+%% ============================================
+%% This is the manual describing the usage of
+%%      esapub.cls
+%% ============================================
+%% Copyright 1999 Patrick W Daly
+%% Max-Planck-Institut f\"ur Aeronomie
+%% Max-Planck-Str. 2
+%% D-37191 Katlenburg-Lindau
+%% Germany
+%% E-mail: daly@linmpi.mpg.de
+%%
+%% -------------------------------------------------
+\documentclass[a4paper,twocolumn]{spaceDebrisC} % European paper
+\pagestyle{empty}
+
+% \bibliographystyle{alpha}
+\bibliographystyle{apalike}
+
+\usepackage{times}
+\usepackage[numbers]{natbib}
+\usepackage{graphicx}
+
+% introduce this option for the ESA publications style
+
+
+\title{Optimal Light Curve Attitude Inversion with Measurement Noise: Two Case Studies}
+\author{Liam Robinson}
+\author{Carolin Frueh}
+\affil{Purdue University, West Lafayette, United States, Email: \texttt{\{robin502, cfrueh\}$@$purdue.edu}}
+
+\begin{document}
+
+\keywords{Light curve inversion; Atitude estimation; Photometry; Inverse problems}
+
+\maketitle
+
+\begin{abstract}
+
+Understanding the orientation and angular velocity state of active or passive human-made space objects is critical for many operations like long-term orbit propagation, aiding a mission, determining mission status, and active debris removal. Beyond low-Earth orbit, optical telescopes are used predominantly to track the space objects. Although this data is abundant, it is generally impossible to resolve even large satellites and rocket bodies in optical ground-based imagery due aperture size and atmospheric distortion. As a result, shape and orientation information is not available in any single image. But a measurement of the object's total brightness can still be obtained. Even if the object's shape and reflective properties are known, any given brightness measurement generally corresponds to infinitely many possible orientations. To constrain the solution space, the brightness can be tracked over time -- producing a sequence of measurements called a light curve. If the identity of the object is known, its attitude profile can be estimated from the light curve through a process known as light curve attitude inversion. Due to the natural and instrumental noise in the light curve, as well as symmetries in the observation geometry, there may be multiple attitude profiles which are equally likely to produce any given light curve.
+
+In this work, we apply a light curve attitude inversion algorithm to real observations taken by the Purdue Optical Ground Station. Given an estimate of the shape and reflective properties of the object, our procedure searches the space of initial orientations, angular velocities, and inertia tensors to find initial conditions that produce light curves with low error compared to the observed values. Specifically, we estimate a full distribution for each candidate light curve and compute the likelihood of the observations being a sample from that distribution. To solve the optimization problem, we create a number of sampled candidate solutions, deterministically arranged throughout the solution space, and perform nonlinear optimization on each using the BFGS algorithm. This way, our optimization procedure reliably converges to all maximum likelihood estimates of the attitude state. Low-error minima are then clustered to identify families of nearby solutions with similar likelihood. The final output of our method is an array of the best solutions, ranked by their likelihood. Formulating the problem this way inherently accounts for the multiple classes of ambiguities resulting from the object and observation geometry, the physical constraints of torque-free rigid body motion, as well as the noise on the light curve.
+
+To test the efficacy of this method, we perform attitude inversion on real observations gathered by the Purdue Optical Ground Station of an inactive GLONASS satellite and a rocket body. Solutions for the GLONASS case are analyzed to highlight the effect of observation geometry ambiguities, while the rocket body case highlights ambiguities introduced by the geometry of the object. Our noise model is validated against further real observations, confirming that all relevant noise sources have been accounted for and modeled accurately. We show that any significant lack of knowledge in the object shape or optical material properties causes the solution to rapidly degrade.
+
+\end{abstract}
+
+\section{General Specifications}
+
+test
+
+\section*{Acknowledgments}
+
+people \cite{robinson2023}
+
+\bibliography{cache/refs.bib}
+
+% \begin{thebibliography}{}
+
+% \bibitem{author73}
+% Author T., (1973). Astrophysical Quantities, Athlone Press
+
+% \bibitem{nobody97}
+% Nobody B., Somebody G., Who D., et~al., (1997). {\it The book}, Publisher, ed. 2
+
+% \bibitem{smith96}
+% Smith A., Jones B., (1996). The new discovery, {\it Other Journal}, {\bf 223}(1), 1029--1101
+
+% \end{thebibliography}
+\end{document}
