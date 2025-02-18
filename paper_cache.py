@@ -21,6 +21,8 @@ imgs = {
     "/Users/liamrobinson/Documents/maintained-research/mirage/docs/source/_static": [
         "refs.bib"
     ],
+    '/Users/liamrobinson/Documents/maintained-research/mirage/examples/13-attitude-2024/figs':
+    glob.glob('/Users/liamrobinson/Documents/maintained-research/mirage/examples/13-attitude-2024/figs/*.png'),
 }
 
 for im_dir, im_names in imgs.items():
