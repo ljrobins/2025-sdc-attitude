@@ -15,6 +15,10 @@ def cache_file(start_path: str, end_dir: str = "cache"):
 
 imgs = {
     "/Users/liamrobinson/Documents/maintained-research/mirage/docs/build/html/_images": [
+        'sphx_glr_plot_models_001.png',
+        'sphx_glr_plot_models_002.png',
+        'sphx_glr_plot_lcs_001_2_00x.png',
+        'sphx_glr_plot_lcs_002_2_00x.png',
     ],
     "/Users/liamrobinson/Documents/presentations-papers/msthesis/static_images": [
     ],

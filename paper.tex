@@ -45,7 +45,7 @@
 \newcommand{\sothree}[0]{$SO_3$}
 \newcommand{\pogslla}[0]{$32.900^\circ \textrm{ N}, -105.533^\circ \textrm{ W} \textrm{ }$}
 
-\newcommand{\figbig}[0]{0.4\textwidth}
+\newcommand{\figbig}[0]{0.5\textwidth}
 \newcommand{\figmed}[0]{0.4\textwidth}
 \newcommand{\figsmall}[0]{0.3\textwidth}
 
@@ -79,10 +79,9 @@ Knowledge of spacecraft orientation and angular velocity states is critical for 
 
 [\textit{TODO: lit}]
 
-In this work, we apply a light curve attitude inversion algorithm to real observations taken by the Purdue Optical Ground Station. Given an estimate of the shape and reflective properties of the object, our procedure searches the space of initial orientations, angular velocities, and inertia tensors to find initial conditions that produce light curves with low error compared to the observed values. Specifically, we estimate a full distribution for each candidate light curve and compute the likelihood of the observations being a sample from that distribution. To solve the optimization problem, we create a number of sampled candidate solutions, deterministically arranged throughout the solution space, and perform nonlinear optimization on each using the BFGS algorithm. This way, our optimization procedure reliably converges to all maximum likelihood estimates of the attitude state. Low-error minima are then clustered to identify families of nearby solutions with similar likelihood. The final output of our method is an array of the best solutions, ranked by their likelihood. Formulating the problem this way inherently accounts for the multiple classes of ambiguities resulting from the object and observation geometry, the physical constraints of torque-free rigid body motion, as well as the noise on the light curve.
+In this work, we apply a light curve attitude inversion algorithm to real observations taken by the Purdue Optical Ground Station. Given an estimate of the shape and reflective properties of the object, our procedure searches the space of initial orientations, angular velocities, and inertia tensors to find initial conditions that produce light curves with low error compared to the observed values. Specifically, we estimate a full distribution for each candidate light curve and compute the likelihood of the observations being a sample from that distribution. To solve the optimization problem, we create a number of sampled candidate solutions, scattered throughout the solution space, and perform nonlinear optimization on each using the BFGS algorithm. This way, our optimization procedure reliably converges to all maximum likelihood estimates of the attitude state. Low-error minima are then clustered to identify families of nearby solutions with similar likelihood. The final output of our method is an array of the best solutions, ranked by their likelihood. Formulating the problem this way inherently accounts for the multiple classes of ambiguities resulting from the object and observation geometry, the physical constraints of torque-free rigid body motion, as well as the noise on the light curve.
 
 To test the efficacy of this method, we perform attitude inversion on real observations gathered by the Purdue Optical Ground Station of an inactive GLONASS satellite and a rocket body. Solutions for the GLONASS case are analyzed to highlight the effect of observation geometry ambiguities, while the rocket body case highlights ambiguities introduced by the geometry of the object. Our noise model is validated against further real observations, confirming that all relevant noise sources have been accounted for and modeled accurately. We show that any significant lack of knowledge in the object shape or optical material properties causes the solution to rapidly degrade.
-
 
 \section{Inversion Method}
 
@@ -94,7 +93,7 @@ Our inversion method is based on the global minimization of a maximum-likelihood
   f(\hat{\vctr{S}}, \vctr{S}) = \frac{1}{m}\sum_{k=1}^{m}\left[\ln\sigma_k + \frac{1}{2}\left(\frac{S_k - \hat{S}_k}{\sigma_k}\right)^2 \right].
  \end{equation}
 
-In this work, the light curve and its standard deviation are always assumed to be expressed in a linear unit, e.g., analog-to-digital units (ADU) or irradiance.
+In this work, the light curve and its standard deviation are always assumed to be expressed in a linear unit, e.g., analog-to-digital units (ADU) or irradiance proportional to $W/m^2$.
 
 \subsection{State Vector Definition and Dynamics}
 
@@ -220,6 +219,78 @@ After summation in Equation \ref{eq:sigma_total}, we can approximate the observe
   S_{\text{SO},k} \sim \mathcal{N}\left( \bar{S}_{\text{SO},k}, \sigma^2_{S,k} \right).
  \end{equation}
 
+\section{Real Data Considerations}
+
+\section{Results}
+
+The two objects selected for study in this work are a Delta I upper stage and the ECHOSTAR 2 satellite.
+
+\subsection{Delta I Upper Stage}
+
+The Delta I upper stage (COSPAR ID 1984-115C) is a Star-37E \cite{delta3914_astronautix} solid fuel apogee kick motor, displayed in Figure \ref{fig:star37e}. It is $d=0.93$ meters in diameter and is approximately $h=1.7$ meters in length \cite{star37e_astronautix, star37_gunter}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figsmall]{star37e.JPG}
+  \caption{The Star-37E upper stage \cite{star37_af}.}
+  \label{fig:star37e}
+\end{figure}
+
+\textit{Computing its MOI}
+
+We compute the inertia tensor of the Star-37E by approximating its geometry as a hollow cylinder of the same aspect ratio such that \cite{serway2019}:
+
+\begin{align}
+  J_a &= \frac{1}{2} m \left(r_o^2+r_i^2\right) \\
+  J_t &= \frac{1}{12} m \left(3 \left(r_o^2+r_i^2\right) + h^2\right). \\
+\end{align}
+
+Here, we choose the inner radius to be $r_i=0.45*d$, the outer radius to be $r_o=0.5d$, and $m=1$ kilogram -- dividing each moment of inertia by a constant does not change the dynamics -- yielding $J_a = 15.3 \: [\text{kg} \cdot m^2]$ and $J_t = 27.9 \: [\text{kg} \cdot m^2]$.
+
+[\textit{MODEL PIC 1}]
+
+\subsection{ECHOSTAR II}
+
+ECHOSTAR II (COSPAR ID 1996-055A) was a communications satellite on the AS-7000 bus \cite{as7000_astronautix}, shown in Figure \ref{fig:echostar1}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figbig]{EchoStar-1_image.jpg}
+  \caption{ECHOSTAR II artist's rendition \cite{as7000_astronautix}.}
+  \label{fig:echostar1}
+\end{figure}
+
+[\textit{MODEL PIC 2}]
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figbig]{sphx_glr_plot_models_001.png}
+  \caption{Simplified ECHOSTAR II box-wing model used for inversion.}
+  \label{fig:echostar1_simple}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figbig]{sphx_glr_plot_models_002.png}
+  \caption{Simplified Star-37E model used for inversion.}
+  \label{fig:star37e_simple}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figbig]{sphx_glr_plot_lcs_001_2_00x.png}
+  \caption{Selected light curve for the Delta (Star-37E) rocket body, observed by the Purdue Optical Ground Station}
+  \label{fig:rb_lc_obs}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figbig]{sphx_glr_plot_lcs_002_2_00x.png}
+  \caption{Selected light curve for ECHOSTAR II, observed by the Purdue Optical Ground Station}
+  \label{fig:sat_lc_obs}
+\end{figure}
+
+
  \begin{table}[ht]
   \centering
   \caption{Observation parameters 2}
@@ -256,20 +327,7 @@ After summation in Equation \ref{eq:sigma_total}, we can approximate the observe
 
 This work was partially supported by a National Defense Science and Engineering Graduate Fellowship.
 
-[\textit{TODO: Acknowledge AIUB if we end up using some of their data for a GLONASS light curve}]
+% [\textit{TODO: Acknowledge AIUB if we end up using some of their data for a GLONASS light curve}]
 
 \bibliography{cache/refs.bib}
-
-% \begin{thebibliography}{}
-
-% \bibitem{author73}
-% Author T., (1973). Astrophysical Quantities, Athlone Press
-
-% \bibitem{nobody97}
-% Nobody B., Somebody G., Who D., et~al., (1997). {\it The book}, Publisher, ed. 2
-
-% \bibitem{smith96}
-% Smith A., Jones B., (1996). The new discovery, {\it Other Journal}, {\bf 223}(1), 1029--1101
-
-% \end{thebibliography}
 \end{document}
