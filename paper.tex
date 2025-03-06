@@ -21,7 +21,12 @@
 \pagestyle{empty}
 
 % \bibliographystyle{alpha}
-\bibliographystyle{apalike}
+\bibliographystyle{plain}
+
+% \usepackage[style=apa, natbib=true]{biblatex} % Use 'apa' style instead of 'apalike'
+\usepackage{url} % Ensure URLs are properly formatted
+% \addbibresource{cache/refs.bib} % Use biblatex's method for loading the bibliography
+
 
 \usepackage{times}
 \usepackage[numbers]{natbib}
@@ -43,7 +48,7 @@
 \newcommand{\rthree}[0]{$\mathbb{R}^3$\:}
 \newcommand{\sthree}[0]{$\mathbb{S}^3$\:}
 \newcommand{\sothree}[0]{$SO_3$}
-\newcommand{\pogslla}[0]{$32.900^\circ \textrm{ N}, -105.533^\circ \textrm{ W} \textrm{ }$}
+\newcommand{\pogslla}[0]{$32.900^\circ \textrm{ N}, -105.533^\circ \textrm{ W}$}
 
 \newcommand{\figbig}[0]{0.5\textwidth}
 \newcommand{\figmed}[0]{0.4\textwidth}
@@ -56,6 +61,7 @@
 \DeclareMathOperator{\atantwo}{atan2}
 \DeclareMathOperator{\fl}{floor}
 
+% \title{Optimal Full State Light Curve Attitude Inversion: Two Real Case Studies}
 \title{Optimal Light Curve Attitude Inversion with Measurement Noise: Two Case Studies}
 \author{Liam Robinson}
 \author{Carolin Frueh}
@@ -69,19 +75,32 @@
 
 \begin{abstract}
 
-Understanding the orientation and angular velocity state of active or passive human-made space objects is critical for many operations like long-term orbit propagation, aiding a mission, determining mission status, and active debris removal. Beyond low-Earth orbit, optical telescopes are used predominantly to track the space objects. Although this data is abundant, it is generally impossible to resolve even large satellites and rocket bodies in optical ground-based imagery due aperture size and atmospheric distortion. As a result, shape and orientation information is not available in any single image. But a measurement of the object's total brightness can still be obtained. Even if the object's shape and reflective properties are known, any given brightness measurement generally corresponds to infinitely many possible orientations. To constrain the solution space, the brightness can be tracked over time -- producing a sequence of measurements called a light curve. If the identity of the object is known, its attitude profile can be estimated from the light curve through a process known as light curve attitude inversion. Due to the natural and instrumental noise in the light curve, as well as symmetries in the observation geometry, there may be multiple attitude profiles which are equally likely to produce any given light curve.
+Understanding the orientation and angular velocity state of active or passive human-made space objects is critical for many space situational awareness operations like long-term orbit propagation, anomaly resolution, determining mission status, and active debris removal. Beyond low-Earth orbit, optical telescopes are predominantly used to track space objects. Due to atmospheric distortion and aperture size, it is generally impossible to resolve even large satellites and rocket bodies in optical ground-based imagery. As a result, shape and orientation information is unavailable in any single image, but a measurement of the object's total brightness can still be obtained. Even if the object's shape and reflective properties are known, any given brightness measurement will generally correspond to infinitely many possible orientations. To constrain the solution space, the brightness can be tracked over time -- producing a sequence of measurements called a light curve. If the object's identity is known, its attitude profile can be estimated from the light curve -- up to certain ambiguities -- through a process known as light curve attitude inversion. Due to the environmental and instrumental noise in the light curve, as well as symmetries in the observation geometry, there may be multiple attitude profiles that are equally likely to produce any given light curve. To identify these ambiguous solutions, global attitude inversion methods must thoroughly search the solution space.
+
+In this work, we apply a BFGS-based global attitude inversion algorithm to real observations taken by the Purdue Optical Ground Station of a Delta I upper stage and the ECHOSTAR II satellite. Given a light curve with an estimate of the shape and reflective properties of the object, our procedure searches the space of initial orientations, angular velocities, and inertia tensors to find initial conditions that produce light curves with low error compared to the observed values. Our formulation inherently accounts for the multiple types of ambiguities resulting from the object and observation geometry, the physical constraints of torque-free rigid body motion, and noise in the light curve.
 
 \end{abstract}
 
 \section{Introduction}
 
-Knowledge of spacecraft orientation and angular velocity states is critical for many space situational awareness (SSA) tasks. Understanding the evolution of high area-to-mass ratio objects \cite{frueh2014} and decommissioned satellites \cite{rachman2023}, planning and executing active debris removal \cite{bonnal2013}, and recovering from mission anomalies \cite{umansky2023} all require attitude information.
+Knowledge of spacecraft orientation and angular velocity states is critical for many space situational awareness (SSA) tasks. Understanding the evolution of high area-to-mass ratio objects \cite{frueh2014} and decommissioned satellites \cite{rachman2023}, planning and executing active debris removal \cite{bonnal2013}, and recovering from mission anomalies \cite{umansky2023} all require attitude information. 
 
-[\textit{TODO: lit}]
+Methods for estimating the attitude state of uncontrolled space objects from light curves differ significantly depending on the presence of an initial guess. If a guess is available, many filter-based approaches have been developed to process new photometry to update the guess orientation and angular velocity. This class of methods includes single Kalman filters \cite{burton2021two, gagnon2024, wetterer2009}, and multi-filter multiple-model adaptive estimation (MMAE) schemes \cite{linares2014space, dianetti2020}. These approaches can be very effective if the initial state estimate is close to the truth, but have been reported to diverge for orientation errors as small as $5^\circ$ in orientation and $0.03^\circ/s^{-1}$ in angular velocity \cite{gagnon2024} due measurement ambiguities and nonlinearity.
 
-In this work, we apply a light curve attitude inversion algorithm to real observations taken by the Purdue Optical Ground Station. Given an estimate of the shape and reflective properties of the object, our procedure searches the space of initial orientations, angular velocities, and inertia tensors to find initial conditions that produce light curves with low error compared to the observed values. Specifically, we estimate a full distribution for each candidate light curve and compute the likelihood of the observations being a sample from that distribution. To solve the optimization problem, we create a number of sampled candidate solutions, scattered throughout the solution space, and perform nonlinear optimization on each using the BFGS algorithm. This way, our optimization procedure reliably converges to all maximum likelihood estimates of the attitude state. Low-error minima are then clustered to identify families of nearby solutions with similar likelihood. The final output of our method is an array of the best solutions, ranked by their likelihood. Formulating the problem this way inherently accounts for the multiple classes of ambiguities resulting from the object and observation geometry, the physical constraints of torque-free rigid body motion, as well as the noise on the light curve.
+If no initial attitude state is available, as in most cases of passive debris observation, the inversion problem must be solved globally. Filtering approaches can be applied here too; particle \cite{linares2014particle, holzinger2014} and Bayesian multi-hypothesis filters \cite{burton2021two, cabrera2023} have shown promise in prior work. If a reliable prior distribution for the attitude state is not available -- which it generally is not -- a Bayesian method may be inadvisable. In the absence of any prior knowledge about the object's attitude state, simulated annealing \cite{gagnon2024, clark2020}, genetic algorithms \cite{gagnon2024, piergentili2017, clark2020}, and particle swarm optimizers (PSOs) \cite{clark2020, clark2022, burton2024journal, burton2024scitech, gagnon2024} can be applied to search the solution space exhaustively.
 
-To test the efficacy of this method, we perform attitude inversion on real observations gathered by the Purdue Optical Ground Station of an inactive GLONASS satellite and a rocket body. Solutions for the GLONASS case are analyzed to highlight the effect of observation geometry ambiguities, while the rocket body case highlights ambiguities introduced by the geometry of the object. Our noise model is validated against further real observations, confirming that all relevant noise sources have been accounted for and modeled accurately. We show that any significant lack of knowledge in the object shape or optical material properties causes the solution to rapidly degrade.
+Much of the past literature on attitude inversion from real light curve data is centered on determining the constant spin rate and axis of rotation of the observed object. Frequency analysis in the form of periodograms, Fourier transforms, or epoch folding, is often used to determine the spin rate based on the light curve's frequency spectrum \cite{silha2015, silha2021, isoletta2024, schildknecht2015, pittet2017, yanagisawa2012, koshkin2018}. If optical material properties are known, the width of a single specular glint can provide sufficient information to determine the rotation rate \cite{hinks2016}. There has also been interest in tracking the evolution of spin rates over time for different classes of objects in different orbital regimes \cite{koshkin2018, blacketer2022, karpov2016}. These spin rate determination methods are designed for single-axis rotations and can fail for tumbling objects.
+
+The rotation axis is often estimated for diffusely reflecting objects that are well-approximated as ellipsoids via the so-called amplitude method \cite{williams1979location} which has been extended for combined spin and precession motion \cite{yanagisawa2012}. For light curves with strong specular peaks, the timing of these glints can be used to determine the constant rotation axis given multiple passes of observations \cite{vananti2023, koshkin2018}. These approaches are not applicable for generalized rigid body motion where no simplifying assumptions about the location of the spin axis are available.
+
+Works that seek to estimate a full rigid body attitude state from real data -- a time-varying orientation and angular velocity -- grid search \cite{shafer2017} and genetic algorithms \cite{piergentili2020, gallucci2020} have been used. These full-state estimation studies are limited by computational complexity, poor knowledge of material reflectivities, and the presence of measurement noise. 
+
+Our method is a global full-state attitude solver inspired by recent PSO work \cite{burton2024journal} but is easier to tune, can be fully parallelized, and is robust to significant measurement noise \cite{robinson2025att}. Further, our method differs from other global estimation methods in that we do not seek to find one optimal solution and instead search for a collection of high-quality local minima to directly study the many ambiguous solutions for a given light curve. To solve the optimization problem, we sample many candidate solutions scattered throughout the solution space and perform gradient-based optimization on each using the BFGS algorithm. Our optimization procedure reliably converges to high-quality maximum likelihood estimates of the attitude state. The final output of our method is an array of the best solutions, ranked by their likelihood. Clusters of low-error minima can be analyzed to identify families of solutions.
+
+This work proceeds by describing the inversion method, discussing efficient methods for computing the time-varying probability density of the light curve, and presenting inversion results for the two test cases.
+
+
+% . Solutions for the GLONASS case are analyzed to highlight the effect of observation geometry ambiguities, while the rocket body case highlights ambiguities introduced by the geometry of the object. Our noise model is validated against further real observations, confirming that all relevant noise sources have been accounted for and modeled accurately. We show that any significant lack of knowledge of the object's shape or optical material properties causes the solution to rapidly degrade.
 
 \section{Inversion Method}
 
@@ -90,39 +109,39 @@ To test the efficacy of this method, we perform attitude inversion on real obser
 Our inversion method is based on the global minimization of a maximum-likelihood loss function which computes the negative log-likelihood of the observed light curve $\vctr{S}$ being a sample from the normal distribution defined by the estimated light curve mean $\hat{\vctr{S}}$ and the estimated standard deviation at each $k$th timestep $\sigma_k$:
 
 \begin{equation} \label{eq:nll_loss}
-  f(\hat{\vctr{S}}, \vctr{S}) = \frac{1}{m}\sum_{k=1}^{m}\left[\ln\sigma_k + \frac{1}{2}\left(\frac{S_k - \hat{S}_k}{\sigma_k}\right)^2 \right].
+ f(\hat{\vctr{S}}, \vctr{S}) = \frac{1}{m}\sum_{k=1}^{m}\left[\ln\sigma_k + \frac{1}{2}\left(\frac{S_k - \hat{S}_k}{\sigma_k}\right)^2 \right].
  \end{equation}
 
 In this work, the light curve and its standard deviation are always assumed to be expressed in a linear unit, e.g., analog-to-digital units (ADU) or irradiance proportional to $W/m^2$.
 
 \subsection{State Vector Definition and Dynamics}
 
-The state vector $\vctr{x}$ we optimize to fit the observed light curve is the concatenation of the Modified Rodriguez Parameter (MRP) $\vctr{p} = [p_1, p_2, p_3]^T$, the principal body frame angular velocity $\vctr{\omega} = [\omega_1, \omega_2, \omega_3]$ in radians per second, and the ratios of the principal moments of inertia $J_y / J_x$ and $J_z / J_x$ where the full inertia tensor is $J = \mathrm{diag}\left([J_x, J_y, J_z]\right)$:
+The state vector $\vctr{x}$ we optimize to fit the observed light curve is the concatenation of the Modified Rodriguez Parameter (MRP) $\vctr{p} = [p_1, p_2, p_3]^T$, the principal body frame angular velocity $\vctr{\omega} = [\omega_1, \omega_2, \omega_3]$ in radians per second, and the ratios of the principal moments of inertia $J_y / J_x$ and $J_z / J_x$ where the inertia tensor in principal axes is $J = \mathrm{diag}\left([J_x, J_y, J_z]\right)$:
 
 \begin{equation}
-  \vctr{x} = \begin{bmatrix} 
-  p_1 & p_2 & p_3 & \omega_1 & \omega_2 & \omega_3 & J_y / J_x & J_z / J_x
+ \vctr{x} = \begin{bmatrix} 
+ p_1 & p_2 & p_3 & \omega_1 & \omega_2 & \omega_3 & J_y / J_x & J_z / J_x
   \end{bmatrix}^T.
 \end{equation}
 
-The first six elements of the state vector are time varying with dynamics given by:
+The first six elements of the state vector are time-varying with dynamics given by:
 
 \begin{align}
-  \vctr{\dot{p}} &= \frac{1}{4} \left[ \left(1 - \vctr{p} \cdot \vctr{p}\right) + 2\vctr{p} \times \vctr{\omega} + 2 \left(\vctr{\omega} \cdot \vctr{p} \right)\vctr{p} \right], \label{eq:mrp_kde} \\
-  \vctr{\dot{\omega}} &= J^{-1} \left[ \left(J \vctr{\omega}\right) \times \vctr{\omega} + \vctr{M}\right]. \label{eq:rbtf_dynamics}
+ \vctr{\dot{p}} &= \frac{1}{4} \left[ \left(1 - \vctr{p} \cdot \vctr{p}\right) + 2\vctr{p} \times \vctr{\omega} + 2 \left(\vctr{\omega} \cdot \vctr{p} \right)\vctr{p} \right], \label{eq:mrp_kde} \\
+ \vctr{\dot{\omega}} &= J^{-1} \left[ \left(J \vctr{\omega}\right) \times \vctr{\omega} + \vctr{M}\right]. \label{eq:rbtf_dynamics}
 \end{align}
 
 \section{Computing the Light Curve}
 
 \subsection{Object Geometry Definition}
 
-We choose to represent the surface geometry of space objects as a polyhedral mesh composed of a set of flat facets. Each $i$th face has $n_v \geq 3$ or more vertices $\left\{ v_{i,1}, v_{i,2}, v_{i,n_v} \right\}$ and an outward-pointing normal vector $\unitv{n}_i$. The total facet area is computed for an arbitrary planar polygon via:
+We choose to represent the surface geometry of space objects as a polyhedral mesh composed of a collection of flat facets. Each $i$th face has $n_v \geq 3$ or more vertices $\left\{ v_{i,1}, v_{i,2}, v_{i,n_v} \right\}$ and an outward-pointing normal vector $\unitv{n}_i$. The total facet area is computed for an arbitrary planar polygon via:
 
 \begin{equation} \label{eq:poly_area}
-  A(P) = \sum_{j=0}^{k-3} \frac{\| \left( \vctr{v}_{j+1} - \vctr{v}_{j} \right) \times \left( \vctr{v}_{j+2} - \vctr{v}_{j} \right)\|_2}{2}.
+ A(P) = \sum_{j=0}^{k-3} \frac{\| \left( \vctr{v}_{j+1} - \vctr{v}_{j} \right) \times \left( \vctr{v}_{j+2} - \vctr{v}_{j} \right)\|_2}{2}.
  \end{equation} 
  
- In any particular illumination and observation condition, a fraction of the facet's area $\tilde{a}_i$ may be shadowed due to obstructing geometry before or after  light reaches the surface element. The remainder of the facet's area $\bar{a}_i$ is unshadowed and contributes to the total flux reaching the observer from the object, such that the total area of each facet is $a_i = \tilde{a}_i + \bar{a}_i$. The geometry for an individual facet is displayed in Figure \ref{fig:facet_geom}.
+ In any particular illumination and observation condition, a fraction of the facet's area $\tilde{a}_i$ may be shadowed due to obstructing geometry before or after light reaches the surface element. The remainder of the facet's area $\bar{a}_i$ is unshadowed and contributes to the total flux reaching the observer from the object, such that the total area of each facet is $a_i = \tilde{a}_i + \bar{a}_i$. The geometry for an individual facet is displayed in Figure \ref{fig:facet_geom}.
 
 \begin{figure}[ht]
   \centering
@@ -133,21 +152,23 @@ We choose to represent the surface geometry of space objects as a polyhedral mes
 
 \subsection{Computing the Unshadowed Area}
 
-The unshadowed area $\bar{a}$ may be computed in a number of ways. For convex objects, $\bar{a}=a$ as self-shadowing is impossible. For highly-nonconvex and detailed models composed of thousands of faces, $\bar{a}$ can be approximated on a pixel grid using shadow mapping \cite{robinson2022}. Self-shadowing can be solved semi-analytically for less detailed approximations of nonconvex objects by computing the mutual intersections of the polygons $P_k$ on other faces whose projections overlap with the face in question. Up to a maximum intersection depth $d$, the unshadowed area can be computed via:
+The unshadowed area $\bar{a}$ may be computed in several ways. For convex objects, $\bar{a}=a$ as self-shadowing is impossible. For highly nonconvex and detailed models composed of thousands of faces, $\bar{a}$ can be approximated on a pixel grid using shadow mapping \cite{robinson2022}. Self-shadowing can be solved semi-analytically for less detailed approximations of nonconvex objects by computing the mutual intersections of the polygons $P_k$ on other faces whose projections overlap with the face in question. Up to a maximum intersection depth $d$, the unshadowed area can be computed via:
 
 \begin{equation} \label{eq:us_area}
-  \bar{a} = a - \sum_{d=1}^{n} \sum_{K \in \text{comb}(n,d)} (-1)^{d+1} A\left(\bigcap\limits_{k \in K} P_k\right).
+ \bar{a} = a - \sum_{d=1}^{n} \sum_{K \in \text{comb}(n,d)} (-1)^{d+1} A\left(\bigcap\limits_{k \in K} P_k\right).
 \end{equation}
 
-As the objects we investigate in this work are well-approximated with relatively simple nonconvex meshes, we use the semi-analytic method to efficiently compute unshadowed areas via the Sutherland-Hodgeman algorithm \cite{sutherland1974} for each polygon intersection.
+As the objects we investigate in this work are well-approximated with relatively simple non-convex meshes, we use the semi-analytic method to efficiently compute unshadowed areas via the Sutherland-Hodgeman algorithm \cite{sutherland1974} for each polygon intersection.
 
 \subsection{Surface Reflectivity}
 
-The bidirectional reflectance distribution function (BRDF) defines the amount of incident radiation from $\unitv{s}$ reflected per steradian in the observer's direction $\unitv{o}$. We choose the Blinn-Phong \cite{blinn1977} BRDF for this work as it is efficient to compute and satisfies the three main requirements for a physically-meaningful BRDF as it is nonnegative, energy-conserving, and reciprocal \cite{duvenhage2013}. The Blinn-Phong BRDF is parameterized by the coefficient of diffuse reflectivity $C_d$, the coefficient of specular reflectivity $C_s$, and the specular exponent $n>0$. The coefficients of reflectivity implicity satisfy $C_a + C_s + C_d = 1$ for energy conservation, where $C_a$ is the coefficient of absorption \cite{fan2020thesis}.
+The bidirectional reflectance distribution function (BRDF) defines the amount of incident radiation from $\unitv{s}$ reflected per steradian in the observer's direction $\unitv{o}$. We choose the Blinn-Phong \cite{blinn1977} BRDF for this work as it is efficient to compute and satisfies the three main requirements for a physically meaningful BRDF as it is nonnegative, energy-conserving, and reciprocal \cite{duvenhage2013}. We avoid more recent microfacet models for computational efficiency. In practice, the uncertainty in the reflective properties of the observed objects will often be larger than errors introduced by the choice of reflection model. The Blinn-Phong BRDF is parameterized by the coefficient of diffuse reflectivity $C_d$, the coefficient of specular reflectivity $C_s$, and the specular exponent $n>0$:
 
 \begin{equation} \label{eq:brdf_blinn_phong}
-  f_r(\unitv{s}, \unitv{o}) = \frac{C_d}{\pi} + \frac{n+2}{2\pi} \frac{C_s (\unitv{n} \cdot \unitv{h})^n}{4 (\unitv{n} \cdot \unitv{s})(\unitv{n} \cdot \unitv{o})}.
+ f_r(\unitv{s}, \unitv{o}) = \frac{C_d}{\pi} + \frac{n+2}{2\pi} \frac{C_s (\unitv{n} \cdot \unitv{h})^n}{4 (\unitv{n} \cdot \unitv{s})(\unitv{n} \cdot \unitv{o})}.
 \end{equation}
+
+The coefficients of reflectivity implicity satisfy $C_a + C_s + C_d = 1$ for energy conservation, where $ 0 \leq C_a \leq 1$ is the coefficient of absorption \cite{fan2020thesis}.
 
 Here, the halfway vector $\unitv{h}$ bisects the illumination and observation directions such that $\unitv{h} = \unitv{h} = (\unitv{s} + \unitv{o})/\norm{\unitv{s} + \unitv{o}}$ \cite{duvenhage2013}.
 
@@ -157,21 +178,21 @@ Given the observer $\unitv{o}_k$ and illumination directions $\unitv{s}_k$ at th
 
 \begin{equation} \label{eq:lc_norm}
   \begin{split} 
-  f_p(\unitv{s}_k, \unitv{o}_k) = \sum_{i=1}^n\prf{B}[&\bar{a}_i(\unitv{s}_k, \unitv{o}_k) f_{r,i}(\unitv{s}_k, \unitv{o}_k) \\ \cdot &(\unitv{n}_i \cdot \unitv{s}_k) (\unitv{n}_i \cdot \unitv{o}_k)]. 
+ f_p(\unitv{s}_k, \unitv{o}_k) = \sum_{i=1}^n\prf{B}[&\bar{a}_i(\unitv{s}_k, \unitv{o}_k) f_{r,i}(\unitv{s}_k, \unitv{o}_k) \\ \cdot &(\unitv{n}_i \cdot \unitv{s}_k) (\unitv{n}_i \cdot \unitv{o}_k)]. 
   \end{split} 
 \end{equation}
 
-The output of Equation \ref{eq:lc_norm} is a light curve, but as many of the noise characteristics of the signal are defined in image sensor's native unit of ADU, we convert the light curve into the same units via:
+The output of Equation \ref{eq:lc_norm} is a light curve, but as many of the noise characteristics of the signal are defined in the image sensor's native unit of ADU, we convert the light curve into the same units via:
 
 \begin{equation} \label{eq:general_bright}
   \begin{split} 
-  \bar{S}_{\text{SO},k} = &f_p(\unitv{s}_k, \unitv{o}_k) \frac{A_\circ \Delta t_k f_\odot(\vctr{r})}{g R_\oplus^2 r_k^2} \\ \cdot &\int_{0}^{\infty}{P(\lambda)Q(\lambda)T_k(\lambda) I_\odot(\lambda) \left(\frac{\lambda}{hc}\right)}\,d\lambda. 
+ \bar{S}_{\text{SO},k} = &f_p(\unitv{s}_k, \unitv{o}_k) \frac{A_\circ \Delta t_k f_\odot(\vctr{r})}{g R_\oplus^2 r_k^2} \\ \cdot &\int_{0}^{\infty}{P(\lambda)Q(\lambda)T_k(\lambda) I_\odot(\lambda) \left(\frac{\lambda}{hc}\right)}\,d\lambda. 
   \end{split}
 \end{equation}
 
-Here before the integral, $A_\circ$ is the unobstructed aperture area in square meters, $\Delta t_k$ is the exposure time in seconds, $f_\odot(\vctr{r})$ is the fraction of solar irradiance reaching the space object at position $\vctr{r}$ -- accounting for the Earth's shadow, $g$ is the sensor gain in ADU per photoelectron, $R_\oplus$ is the distance from the Sun to the space object in AU, $r_k$ is the distance from the observer to the space object in kilometers. Within the integral, we account for the telescope's passband filter $P(\lambda)$, the image sensor quantum efficiency $Q(\lambda)$, the atmospheric absorption spectrum $T_k(\lambda)$, the solar irradiance spectrum $I_\odot(\lambda)$, and the inverse energy of a photon with wavelength $\lambda$, $\lambda / hc$, where $h$ is Planck's constant in Joule-seconds, and $c$ is the speed of light in vacuum in meters per second. Taken together, the integral computes the fraction of the energy reflected from the object absorbed into the image sensor, while the the outer factor dimensionalizes the result to yield the mean total sensor response in ADU across all pixels due to the object's signal.
+Here before the integral, $A_\circ$ is the unobstructed aperture area in square meters, $\Delta t_k$ is the exposure time in seconds, $f_\odot(\vctr{r})$ is the fraction of solar irradiance reaching the space object at position $\vctr{r}$ -- accounting for the Earth's shadow, $g$ is the sensor gain in ADU per photoelectron, $R_\oplus$ is the distance from the Sun to the space object in AU, $r_k$ is the distance from the observer to the space object in kilometers. Within the integral, we account for the telescope's passband filter $P(\lambda)$, the image sensor quantum efficiency $Q(\lambda)$, the atmospheric absorption spectrum $T_k(\lambda)$, the solar irradiance spectrum $I_\odot(\lambda)$, and the inverse energy of a photon with wavelength $\lambda$, $\lambda / hc$, where $h$ is Planck's constant in Joule-seconds, and $c$ is the speed of light in vacuum in meters per second. Taken together, the integral computes the fraction of the energy reflected from the object absorbed into the image sensor, while the outer factor dimensionalizes the result to yield the mean total sensor response in ADU across all pixels due to the object's signal.
 
-the variance a space object's light curve whose mean is determined by Equation \ref{eq:general_bright} is a combination of a number of relevant independent stochastic processes. These distributions have variances $\sigma^2_\text{sensor}$ due to the sensor's integration and readout effects, $\sigma^2_\text{flat}$ from sensor flat-fielding effects, scintillation noise $\bar{S}_{\text{SO},k} \sigma^2_{Y,k}$ \cite{osborn2015}, Poisson signal shot noise $\lambda_{\text{shot},k}$, and Poisson background noise $\lambda_{\text{back},k}$. The sum of these variances yields total signal variance in ADU:
+The variance of a space object's light curve whose mean is determined by Equation \ref{eq:general_bright} is a combination of many independent stochastic processes. These distributions have variances $\sigma^2_\text{sensor}$ due to the sensor's integration and readout effects, $\sigma^2_\text{flat}$ from sensor flat-fielding effects, scintillation noise $\bar{S}_{\text{SO},k} \sigma^2_{Y,k}$ \cite{osborn2015}, Poisson signal shot noise $\lambda_{\text{shot},k}$, and Poisson background noise $\lambda_{\text{back},k}$. The sum of these variances yields the total signal variance in ADU:
 
 \begin{equation} \label{eq:sigma_total}
   \begin{split}
@@ -191,7 +212,7 @@ The flat field noise is modeled as a zero-mean Gaussian linearly scaling with th
   \sigma_\text{flat}^2 = f_k^2 \sum_{i=1}^{n_\text{pix}} S_i^2.
 \end{equation}
 
-The background standard deviation is modeled by the sum of six independent Poisson random processes contributing to light entering the telescope optics from environmental sources. These processes and the sources of their respective models are: scattered moonlight $\lambda_{\text{moon},k}$ \cite{daniels1977}, integrated starlight $\lambda_{\text{star},k}$ \cite{krag2003}, twilight $\lambda_{\text{twi},k}$ \cite{pata2006}, zodiacal light $\lambda_{\text{zod},k}$ \cite{roach1972}, airglow $\lambda_{\text{air},k}$ \cite{krag2003}, and light pollution $\lambda_{\text{poll},k}$ \cite{falchi2016, falchi2016_data}. In summation, the total Poisson background variance is:
+The background standard deviation is modeled by the sum of six independent Poisson random processes contributing to light entering the telescope optics from environmental sources. These processes and the sources of their respective models are: scattered moonlight $\lambda_{\text{moon},k}$ \cite{daniels1977}, integrated starlight $\lambda_{\text{star},k}$ \cite{krag2003}, twilight $\lambda_{\text{twi},k}$ \cite{patat2006}, zodiacal light $\lambda_{\text{zod},k}$ \cite{roach1972}, airglow $\lambda_{\text{air},k}$ \cite{krag2003}, and light pollution $\lambda_{\text{poll},k}$ \cite{falchi2016, falchi2016_data}. In summation, the total Poisson background variance is:
 
 \begin{equation}
   \begin{split}
@@ -205,7 +226,7 @@ The fractional scintillation noise due to atmospheric turbulence is modeled via 
   \sigma^2_{Y,k} = 10^{-6} D^{-4/3} (\Delta t)_k^{-1} \cos^{-3}\left(\gamma_k\right) e^{\frac{-2h_\text{obs}}{H}}.
 \end{equation}
 
-[\textit{TODO: describe the variables here, if we want to keep this eq... it's in the cited paper so i am not sure}]
+[\textit{TODO: describe the variables here, if we want to keep this eq... it's in the cited paper so I am not sure}]
 
 The signal shot noise is a Poisson process as a function of the mean signal in ADU $\bar{S}_{\text{SO},k}$ and the image sensor gain $g$ in ADU per photoelectron:
 
@@ -213,10 +234,10 @@ The signal shot noise is a Poisson process as a function of the mean signal in A
   \lambda_{\text{shot},k} = \frac{\bar{S}_{\text{SO},k}}{\sqrt{g}}.
 \end{equation}
 
-After summation in Equation \ref{eq:sigma_total}, we can approximate the observed light curve as Gaussian distributed via the mean $\bar{S}_{\text{SO},k}$ from Equation \ref{eq:general_bright} and the variance $\sigma^2_{S,k}$ in $[\text{ADU}^2]$:
+After summation in Equation \ref{eq:sigma_total}, we can approximate the observed light curve as Gaussian distributed via the mean $\bar{S}_{\text{SO},k}$ from Equation \ref{eq:general_bright} and the variance $\sigma^2_{S,k}$ in $\text{ADU}^2$:
 
 \begin{equation}
-  S_{\text{SO},k} \sim \mathcal{N}\left( \bar{S}_{\text{SO},k}, \sigma^2_{S,k} \right).
+ S_{\text{SO},k} \sim \mathcal{N}\left( \bar{S}_{\text{SO},k}, \sigma^2_{S,k} \right).
  \end{equation}
 
 \section{Real Data Considerations}
@@ -232,41 +253,8 @@ The Delta I upper stage (COSPAR ID 1984-115C) is a Star-37E \cite{delta3914_astr
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\figsmall]{star37e.JPG}
-  \caption{The Star-37E upper stage \cite{star37_af}.}
+  \caption{Star-37E upper stage \cite{star37_af}.}
   \label{fig:star37e}
-\end{figure}
-
-\textit{Computing its MOI}
-
-We compute the inertia tensor of the Star-37E by approximating its geometry as a hollow cylinder of the same aspect ratio such that \cite{serway2019}:
-
-\begin{align}
-  J_a &= \frac{1}{2} m \left(r_o^2+r_i^2\right) \\
-  J_t &= \frac{1}{12} m \left(3 \left(r_o^2+r_i^2\right) + h^2\right). \\
-\end{align}
-
-Here, we choose the inner radius to be $r_i=0.45*d$, the outer radius to be $r_o=0.5d$, and $m=1$ kilogram -- dividing each moment of inertia by a constant does not change the dynamics -- yielding $J_a = 15.3 \: [\text{kg} \cdot m^2]$ and $J_t = 27.9 \: [\text{kg} \cdot m^2]$.
-
-[\textit{MODEL PIC 1}]
-
-\subsection{ECHOSTAR II}
-
-ECHOSTAR II (COSPAR ID 1996-055A) was a communications satellite on the AS-7000 bus \cite{as7000_astronautix}, shown in Figure \ref{fig:echostar1}.
-
-\begin{figure}[ht]
-  \centering
-  \includegraphics[width=\figbig]{EchoStar-1_image.jpg}
-  \caption{ECHOSTAR II artist's rendition \cite{as7000_astronautix}.}
-  \label{fig:echostar1}
-\end{figure}
-
-[\textit{MODEL PIC 2}]
-
-\begin{figure}[ht]
-  \centering
-  \includegraphics[width=\figbig]{sphx_glr_plot_models_001.png}
-  \caption{Simplified ECHOSTAR II box-wing model used for inversion.}
-  \label{fig:echostar1_simple}
 \end{figure}
 
 \begin{figure}[ht]
@@ -276,12 +264,114 @@ ECHOSTAR II (COSPAR ID 1996-055A) was a communications satellite on the AS-7000 
   \label{fig:star37e_simple}
 \end{figure}
 
+We compute the inertia tensor of the Star-37E by approximating its geometry as a hollow cylinder of the same aspect ratio such that \cite{serway2019}:
+
+\begin{align}
+ J_a &= \frac{1}{2} m \left(r_o^2+r_i^2\right) \\
+ J_t &= \frac{1}{12} m \left(3 \left(r_o^2+r_i^2\right) + h^2\right) \\
+ J_\text{R/B} &= \text{diag} \left(J_a, J_t, J_t\right).
+\end{align}
+
+Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=0.5d$, and $m=1$ kilogram -- dividing each moment of inertia by a constant does not change the dynamics -- yielding $J_a = 15.3 \: [kg \cdot m^2]$ and $J_t = 27.9 \: [kg \cdot m^2]$. Table \ref{tb:case1_in} summarizes the light curve observations that result in the extracted measurements displayed in Figure \ref{fig:rb_lc_obs}.
+
+\begin{table}[ht]
+  \centering
+  \caption{Delta I rocket body observation parameters}
+  \vspace*{6pt}
+  \begin{tabular}{|l|l|}
+  \hline
+  \textbf{Variable} & \textbf{Value} \\ \hline
+  Telescope location & \pogslla \\ \hline
+  Target COSPAR ID & 1984-115C \\ \hline
+  First obs.\ (UTC) & Mar 2, 2025 01:53:30.251 \\ \hline
+  Light curve duration & $7.5$ minutes \\ \hline
+  Observations & $100$ ($92$ extracted) \\ \hline
+  Obs.\ frequency & $0.222$ Hz \\ \hline
+  Integration time & $3$ seconds \\ \hline
+  \end{tabular}
+  \label{tb:case1_in}
+\end{table}
+
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\figbig]{sphx_glr_plot_lcs_001_2_00x.png}
   \caption{Selected light curve for the Delta (Star-37E) rocket body, observed by the Purdue Optical Ground Station}
   \label{fig:rb_lc_obs}
 \end{figure}
+
+\begin{table}[ht]
+  \centering
+  \caption{Delta I rocket body inversion assumptions}
+  \vspace*{6pt}
+  \begin{tabular}{|l|l|}
+  \hline
+  \textbf{Variable} & \textbf{Value} \\ \hline
+  Uniform BRDF & $C_d=0.2$, $C_s=0.8$, $n=30$ \\ \hline
+  $|\omega(0)|_\text{max}$ & $8.31$ $\text{deg} / \text{s}^{-1}$ \\ \hline
+  \end{tabular}
+  \label{tb:case1_ass}
+\end{table}
+
+
+\subsection{ECHOSTAR II}
+
+ECHOSTAR II (COSPAR ID 1996-055A) was a communications satellite on the AS-7000 bus \cite{as7000_astronautix}, shown in Figure \ref{fig:echostar1}. It has an approximate total wingspan of $s = 23.9$ meters, individual solar panel length of $l_p=8.5$ meters, panel width of $w_p=3.1$ meters, and a mass per panel of $m_p = 60$ kilograms \cite{earl2015}. The spacecraft bus is approximately cubic with a side length $w_b=2.3$ meters and a mass of $m_b = 1900$ kilograms \cite{earl2015}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figbig]{EchoStar-1_image.jpg}
+  \caption{ECHOSTAR II artist's rendition \cite{as7000_astronautix}.}
+  \label{fig:echostar1}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figbig]{sphx_glr_plot_models_001.png}
+  \caption{Simplified ECHOSTAR II box-wing model used for inversion.}
+  \label{fig:echostar1_simple}
+\end{figure}
+
+The contribution of the bus to the total inertia tensor of ECHOSTAR II is spherically symmetric and given by: [\textit{TODO: citation needed}]:
+
+\begin{align}
+ J_\text{bus} &= \frac{1}{6} m_b w_b^2 I_3,
+\end{align}
+
+\noindent
+assuming that the center of mass (COM) of the bus coincides with the COM of the entire vehicle. By the intermediate axis theorem, the contribution of a panel to the inertia tensor is a function of the displacement of the panel's COM from the vehicle's overall COM $\vctr{r}_p = [ 0, s/2 - l_p/2, 0]^T$ [\textit{TODO: citation needed}]:
+
+\begin{equation}
+  \begin{split}
+ J_\text{pan} = &\frac{m_p}{12} \cdot \text{diag}\left(l_p^2, w_p^2, \left(l_p^2 + w_p^2\right) \right) + \\&m_p \left[ \left( \vctr{r}_p \cdot \vctr{r}_p \right) I_3 - \vctr{r}_p \vctr{r}_p^T \right],
+  \end{split}
+\end{equation}
+
+\noindent
+assuming that the panels have negligible thickness. The overall inertia tensor for ECHOSTAR II is:
+
+\begin{align}
+ J_\text{SAT} &= J_\text{bus} + 2J_\text{pan} \\
+  &= \text{diag} \left( 9512, 1771, 9609 \right) \: [kg \cdot m^2]
+\end{align}
+
+
+\begin{table}[ht]
+  \centering
+  \caption{ECHOSTAR II observation parameters}
+  \vspace*{6pt}
+  \begin{tabular}{|l|l|}
+  \hline
+  \textbf{Variable} & \textbf{Value} \\ \hline
+  Telescope location & \pogslla \\ \hline
+  Target COSPAR ID & 1996-055A \\ \hline
+  First obs.\ (UTC) & Feb 26, 2025 04:16:12.279 \\ \hline
+  Light curve duration & $19.5$ minutes \\ \hline
+  Observations & $456$ ($395$ extracted) \\ \hline
+  Obs.\ frequency & $0.388$ Hz \\ \hline
+  Integration time & $1$ seconds \\ \hline
+  \end{tabular}
+  \label{tb:case2_in}
+\end{table}
 
 \begin{figure}[ht]
   \centering
@@ -290,44 +380,28 @@ ECHOSTAR II (COSPAR ID 1996-055A) was a communications satellite on the AS-7000 
   \label{fig:sat_lc_obs}
 \end{figure}
 
-
- \begin{table}[ht]
-  \centering
-  \caption{Observation parameters 2}
-  \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
-  Observation start (UTC) & Oct 10, 2024 08:00:00 \\ \hline
-  COSPAR ID & 1987-084D \\ \hline 
- Light curve duration & $2$ minutes \\ \hline
- Measurement frequency & $0.5$ Hz \\ \hline
- Integration time & $0.01$ seconds \\ \hline
-  \end{tabular}
-  \label{tb:case1_in}
-\end{table}
+We estimate a maximum bound for the angular velocity magnitude by inspecting the light curve [\textit{TODO: finish sentence}]
 
 \begin{table}[ht]
   \centering
-  \caption{Observation parameters 2}
+  \caption{ECHOSTAR II inversion assumptions}
   \vspace*{6pt}
   \begin{tabular}{|l|l|}
   \hline
   \textbf{Variable} & \textbf{Value} \\ \hline
-  Observation start (UTC) & Oct 10, 2024 08:00:00 \\ \hline
-  COSPAR ID & 1987-084D \\ \hline 
- Light curve duration & $2$ minutes \\ \hline
- Measurement frequency & $0.5$ Hz \\ \hline
- Integration time & $0.01$ seconds \\ \hline
+  Aluminum BRDF & $C_d=0.22$, $C_s=0.4$, $n=5$ \\ \hline
+  MLI BRDF & $C_d=0.05$, $C_s=0.24$, $n=20$ \\ \hline
+  Solar panel BRDF & $C_d=0.05$, $C_s=0.13$, $n=10$ \\ \hline
+  $|\omega(0)|_\text{max}$ & $2.32$ $\text{deg} / \text{s}^{-1}$ \\ \hline
   \end{tabular}
-  \label{tb:case1_in}
+  \label{tb:case2_ass}
 \end{table}
 
 \section*{Acknowledgments}
 
 This work was partially supported by a National Defense Science and Engineering Graduate Fellowship.
 
-% [\textit{TODO: Acknowledge AIUB if we end up using some of their data for a GLONASS light curve}]
-
+\clearpage
 \bibliography{cache/refs.bib}
 \end{document}
+
