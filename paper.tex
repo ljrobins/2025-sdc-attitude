@@ -31,7 +31,7 @@
 \usepackage{times}
 \usepackage[numbers]{natbib}
 \usepackage{graphicx}
-
+\usepackage{placeins}
 \usepackage{bm} % for bold math
 \usepackage{mathtools} % for \prescript
 \newcommand{\vctr}[1]{\bm{#1}}
@@ -48,7 +48,6 @@
 \newcommand{\rthree}[0]{$\mathbb{R}^3$\:}
 \newcommand{\sthree}[0]{$\mathbb{S}^3$\:}
 \newcommand{\sothree}[0]{$SO_3$}
-\newcommand{\pogslla}[0]{$32.900^\circ \textrm{ N}, -105.533^\circ \textrm{ W}$}
 
 \newcommand{\figbig}[0]{0.5\textwidth}
 \newcommand{\figmed}[0]{0.4\textwidth}
@@ -61,7 +60,6 @@
 \DeclareMathOperator{\atantwo}{atan2}
 \DeclareMathOperator{\fl}{floor}
 
-% \title{Optimal Full State Light Curve Attitude Inversion: Two Real Case Studies}
 \title{Optimal Light Curve Attitude Inversion with Measurement Noise: Two Case Studies}
 \author{Liam Robinson}
 \author{Carolin Frueh}
@@ -102,6 +100,7 @@ This work proceeds by describing the inversion method, discussing efficient meth
 
 % . Solutions for the GLONASS case are analyzed to highlight the effect of observation geometry ambiguities, while the rocket body case highlights ambiguities introduced by the geometry of the object. Our noise model is validated against further real observations, confirming that all relevant noise sources have been accounted for and modeled accurately. We show that any significant lack of knowledge of the object's shape or optical material properties causes the solution to rapidly degrade.
 
+\FloatBarrier
 \section{Inversion Method}
 
 \subsection{Objective Function}
@@ -131,6 +130,7 @@ The first six elements of the state vector are time-varying with dynamics given 
  \vctr{\dot{\omega}} &= J^{-1} \left[ \left(J \vctr{\omega}\right) \times \vctr{\omega} + \vctr{M}\right]. \label{eq:rbtf_dynamics}
 \end{align}
 
+\FloatBarrier
 \section{Computing the Light Curve}
 
 \subsection{Object Geometry Definition}
@@ -172,7 +172,7 @@ The coefficients of reflectivity implicity satisfy $C_a + C_s + C_d = 1$ for ene
 
 Here, the halfway vector $\unitv{h}$ bisects the illumination and observation directions such that $\unitv{h} = \unitv{h} = (\unitv{s} + \unitv{o})/\norm{\unitv{s} + \unitv{o}}$ \cite{duvenhage2013}.
 
-\subsection{The Light Curve}
+\subsection{Computing the Mean Observed Signal}
 
 Given the observer $\unitv{o}_k$ and illumination directions $\unitv{s}_k$ at the $k$th observation epoch in the body frame $\mathcal{B}$, as well as the BRDF $f_{r,i}$ for each $i$th surface of the object, the fraction of incident power reflected in the direction of the observer is \cite{fan2020thesis}:
 
@@ -192,7 +192,9 @@ The output of Equation \ref{eq:lc_norm} is a light curve, but as many of the noi
 
 Here before the integral, $A_\circ$ is the unobstructed aperture area in square meters, $\Delta t_k$ is the exposure time in seconds, $f_\odot(\vctr{r})$ is the fraction of solar irradiance reaching the space object at position $\vctr{r}$ -- accounting for the Earth's shadow, $g$ is the sensor gain in ADU per photoelectron, $R_\oplus$ is the distance from the Sun to the space object in AU, $r_k$ is the distance from the observer to the space object in kilometers. Within the integral, we account for the telescope's passband filter $P(\lambda)$, the image sensor quantum efficiency $Q(\lambda)$, the atmospheric absorption spectrum $T_k(\lambda)$, the solar irradiance spectrum $I_\odot(\lambda)$, and the inverse energy of a photon with wavelength $\lambda$, $\lambda / hc$, where $h$ is Planck's constant in Joule-seconds, and $c$ is the speed of light in vacuum in meters per second. Taken together, the integral computes the fraction of the energy reflected from the object absorbed into the image sensor, while the outer factor dimensionalizes the result to yield the mean total sensor response in ADU across all pixels due to the object's signal.
 
-The variance of a space object's light curve whose mean is determined by Equation \ref{eq:general_bright} is a combination of many independent stochastic processes. These distributions have variances $\sigma^2_\text{sensor}$ due to the sensor's integration and readout effects, $\sigma^2_\text{flat}$ from sensor flat-fielding effects, scintillation noise $\bar{S}_{\text{SO},k} \sigma^2_{Y,k}$ \cite{osborn2015}, Poisson signal shot noise $\lambda_{\text{shot},k}$, and Poisson background noise $\lambda_{\text{back},k}$. The sum of these variances yields the total signal variance in ADU:
+\subsection{Approximating the Measurement Noise}
+
+The variance of a space object's observed brightness whose mean is determined by Equation \ref{eq:general_bright} is a combination of many independent stochastic processes. These distributions have variances $\sigma^2_\text{sensor}$ due to the sensor's integration and readout effects, $\sigma^2_\text{flat}$ from sensor flat-fielding effects, scintillation noise $\bar{S}_{\text{SO},k} \sigma^2_{Y,k}$ \cite{osborn2015}, Poisson signal shot noise $\lambda_{\text{shot},k}$, and Poisson background noise $\lambda_{\text{back},k}$. The sum of these variances yields the total signal variance in ADU:
 
 \begin{equation} \label{eq:sigma_total}
   \begin{split}
@@ -240,9 +242,114 @@ After summation in Equation \ref{eq:sigma_total}, we can approximate the observe
  S_{\text{SO},k} \sim \mathcal{N}\left( \bar{S}_{\text{SO},k}, \sigma^2_{S,k} \right).
  \end{equation}
 
-\section{Real Data Considerations}
+\FloatBarrier
+\section{Attitude Inversion Results for Synthetic Data}
 
-\section{Results}
+To demonstrate the effectiveness of this method, we first present results for a simulated light curve where the ground truth is known. 
+
+\begin{table}[ht]
+  \centering
+  \caption{Simulated observation parameters}
+  \vspace*{6pt}
+  \begin{tabular}{|l|l|}
+  \hline
+  \textbf{Variable} & \textbf{Value} \\ \hline
+  Target COSPAR ID & 1990-054D \\ \hline
+  First obs.\ (UTC) & Mar 8, 2025 02:00:00.000 \\ \hline
+  Light curve duration & $5$ minutes \\ \hline
+  Observations & $100$ \\ \hline
+  Integration time & $0.5$ seconds \\ \hline
+  \end{tabular}
+  \label{tb:case1_in}
+\end{table}
+
+\begin{table}[ht]
+  \centering
+  \caption{Reflection properties of materials used in the synthetic data test case. The authors estimated the white paint parameters qualitatively}
+  \vspace*{6pt}
+  \begin{tabular}{|l|l|l|l|}
+  \hline
+  \textbf{Material} & $C_d$ & $C_s$ & $n$ \\ \hline
+  Aluminum \cite{fankhauser2023} & $0.34$ & $0.40$ & $8.9$ \\ \hline
+  White paint & $0.9$ & $0.1$ & $1$ \\ \hline
+  \end{tabular}
+  \label{tb:real_matprops}
+ \end{table}
+
+\begin{table}[ht]
+  \centering
+  \caption{True object attitude profile for all test cases}
+  \vspace*{6pt}
+  \begin{tabular}{|l|l|}
+  \hline
+  \textbf{Variable} & \textbf{Value} \\ \hline
+ Initial orientation & $\vctr{p}(0) = -\frac{1}{3} \begin{bmatrix} 1 & 1 & 1 \end{bmatrix}^T$ \\ \hline
+ Initial $\vctr{\omega}$ ($\text{rad}/\text{s}$) & $\vctr{\omega}(0) = \begin{bmatrix} 0.03 & 0.06 & 0.03 \end{bmatrix}^T$ \\ \hline
+ Inertia tensor ratios & $J_y / J_x = 1, \: J_z / J_x = 0.25$ \\ \hline
+ External torque & $\vctr{M}=\begin{bmatrix} 0 & 0 & 0 \end{bmatrix}^T$ \\ \hline
+  \end{tabular}
+  \label{tb:synth_truth}
+\end{table}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figsmall]{rocket_bodies2.png}
+  \caption{Measured rocket body model \cite{nasa_models}.}
+  \label{fig:meas_model}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figsmall]{rocket_bodies1.png}
+  \caption{Simplified rocket body model used for inversion.}
+  \label{fig:inv_model}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figsmall]{light_curves_adu_rocket_body.png}
+  \caption{Simulated observed flux for the rocket body.}
+  \label{fig:obs_adu_synth}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figsmall]{light_curves_mag_rocket_body.png}
+  \caption{Simulated observed V-band magnitude for the rocket body.}
+  \label{fig:obs_mag_synth}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figsmall]{light_curves_std_rocket_body.png}
+  \caption{Simulated observed light curve standard deviation computed with Equation \ref{eq:sigma_total}.}
+  \label{fig:obs_std_synth}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figsmall]{sigma_solsRocket Body.png}
+  \caption{Converged solution initial orientation MRP vectors.}
+  \label{fig:omega_sols1}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figsmall]{omega_sols_Rocket Body.png}
+  \caption{Converged solution initial body-frame angular velocities.}
+  \label{fig:omega_sols1}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\figsmall]{spin_proc_Rocket Body.png}
+  \caption{Converged solution body-frame spin and precession rates.}
+  \label{fig:omega_sols1}
+\end{figure}
+
+
+\FloatBarrier
+\section{Attitude Inversion Results for Real Data}
 
 The two objects selected for study in this work are a Delta I upper stage and the ECHOSTAR 2 satellite.
 
@@ -281,7 +388,6 @@ Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=
   \begin{tabular}{|l|l|}
   \hline
   \textbf{Variable} & \textbf{Value} \\ \hline
-  Telescope location & \pogslla \\ \hline
   Target COSPAR ID & 1984-115C \\ \hline
   First obs.\ (UTC) & Mar 2, 2025 01:53:30.251 \\ \hline
   Light curve duration & $7.5$ minutes \\ \hline
@@ -362,7 +468,6 @@ assuming that the panels have negligible thickness. The overall inertia tensor f
   \begin{tabular}{|l|l|}
   \hline
   \textbf{Variable} & \textbf{Value} \\ \hline
-  Telescope location & \pogslla \\ \hline
   Target COSPAR ID & 1996-055A \\ \hline
   First obs.\ (UTC) & Feb 26, 2025 04:16:12.279 \\ \hline
   Light curve duration & $19.5$ minutes \\ \hline
@@ -388,7 +493,7 @@ We estimate a maximum bound for the angular velocity magnitude by inspecting the
   \vspace*{6pt}
   \begin{tabular}{|l|l|}
   \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
+  \textbf{Material} & \textbf{Coefficients} \\ \hline
   Aluminum BRDF & $C_d=0.22$, $C_s=0.4$, $n=5$ \\ \hline
   MLI BRDF & $C_d=0.05$, $C_s=0.24$, $n=20$ \\ \hline
   Solar panel BRDF & $C_d=0.05$, $C_s=0.13$, $n=10$ \\ \hline
@@ -397,10 +502,50 @@ We estimate a maximum bound for the angular velocity magnitude by inspecting the
   \label{tb:case2_ass}
 \end{table}
 
+\FloatBarrier
 \section*{Acknowledgments}
 
 This work was partially supported by a National Defense Science and Engineering Graduate Fellowship.
 
+\FloatBarrier
+\section*{Appendix}
+
+\begin{table}[ht]
+  \centering
+  \caption{Telescope information common to all test cases}
+  \vspace*{6pt}
+  \begin{tabular}{|l|l|}
+  \hline
+  \textbf{Variable} & \textbf{Value} \\ \hline
+  CCD sensor & KAF-16803 \\ \hline
+  Effective aperture area $A_\circ$ & $0.076$ $m^2$ \\ \hline
+  Observer location & $32.900^\circ \textrm{ N}, -105.533^\circ \textrm{ W}$ \\ \hline
+  Observer altitude & $2.24$ km above MSL \\ \hline
+  Source pixels $n_\text{pix}$ & $100$ \\ \hline
+  Read noise $\sigma_\text{read}$ & $9$ $\text{ADU} / \text{pixel}$ \\ \hline
+  Dark current rate $\lambda_\text{dark}$ & $0.01$ $\text{ADU} / \text{pixel} / \text{s}$ \\ \hline
+  Flat field strength $f_k$ & $0.01$ nondim \\ \hline
+  Gain $g$ & $5.1$ $e^- / \text{ADU}$ \\ \hline
+  \end{tabular}
+  \label{tb:tele_info}
+ \end{table}
+
+ \begin{table}[ht]
+  \centering
+  \caption{BFGS solver configuration for all results cases}
+  \vspace*{6pt}
+  \begin{tabular}{|l|l|}
+  \hline
+  \textbf{Variable} & \textbf{Value} \\ \hline
+  Maximum function evaluations & $1000$ \\ \hline
+  Maximum iterations & $100$ \\ \hline
+  Finite difference step size & $1 \cdot 10^{-5}$ \\ \hline
+  Gradient $\infty$-norm tolerance & $1 \cdot 10^{-5}$ \\ \hline
+  \end{tabular}
+  \label{tb:bfgs_info}
+ \end{table}
+
+\FloatBarrier
 \clearpage
 \bibliography{cache/refs.bib}
 \end{document}

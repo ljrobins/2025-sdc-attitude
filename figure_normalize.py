@@ -42,7 +42,7 @@ for i, match in enumerate(matches, start=1):
     # img.convert('RGB').save(f'final/fig{i}.jpg', format='JPEG', dpi=(600,600))
     # replacement = rf"{match[0]}fig{i}.jpg{match[2]}"
 
-    os.system(f'cp cache/{match[1]} final/fig{i}.png')
+    os.system(f'cp "cache/{match[1]}" final/fig{i}.png')
     replacement = rf"{match[0]}fig{i}.png{match[2]}"
     content = content.replace("".join(match), replacement, 1)
 

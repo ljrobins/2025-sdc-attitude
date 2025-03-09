@@ -27,6 +27,8 @@ imgs = {
     ],
     '/Users/liamrobinson/Documents/maintained-research/mirage/examples/13-attitude-2024/figs':
     glob.glob('/Users/liamrobinson/Documents/maintained-research/mirage/examples/13-attitude-2024/figs/*.png'),
+    '/Users/liamrobinson/Documents/maintained-research/mirage/examples/15-attitude-sdc-2025/figs':
+    glob.glob('/Users/liamrobinson/Documents/maintained-research/mirage/examples/15-attitude-sdc-2025/figs/*'),
 }
 
 for im_dir, im_names in imgs.items():
