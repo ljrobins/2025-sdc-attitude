@@ -10,4 +10,4 @@ open:
 
 final:
 	. .venv/bin/activate && python paper_cache.py && python figure_normalize.py
-	cd final && lualatex paper && bibtex paper && lualatex paper && lualatex paper
+	cd final && pdflatex paper && bibtex paper && pdflatex paper && pdflatex paper
