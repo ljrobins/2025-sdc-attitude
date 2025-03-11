@@ -19,6 +19,7 @@ imgs = {
         'sphx_glr_plot_models_002.png',
         'sphx_glr_plot_lcs_001_2_00x.png',
         'sphx_glr_plot_lcs_002_2_00x.png',
+        *glob.glob('/Users/liamrobinson/Documents/maintained-research/mirage/docs/build/html/_images/sphx_glr_results_*.png'),
     ],
     "/Users/liamrobinson/Documents/presentations-papers/msthesis/static_images": [
     ],
