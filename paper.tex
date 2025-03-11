@@ -467,7 +467,7 @@ We compute the inertia tensor of the Star-37E by approximating its geometry as a
  J_\text{R/B} &= \text{diag} \left(J_a, J_t, J_t\right).
 \end{align}
 
-Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=0.5d$, and $m=1$ kilogram -- dividing each moment of inertia by a constant does not change the dynamics -- yielding $J_a = 15.3 \: [kg \cdot m^2]$ and $J_t = 27.9 \: [kg \cdot m^2]$. Table \ref{tb:case1_in} summarizes the light curve observations that result in the extracted measurements displayed in Figure \ref{fig:rb_lc_obs}.
+Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=0.5d$, and $m=1$ kilogram -- dividing each moment of inertia by a constant does not change the dynamics -- yielding $J_a = 15.3 \: [kg \cdot m^2]$ and $J_t = 27.9 \: [kg \cdot m^2]$. Table \ref{tb:case2_in} summarizes the light curve observations that result in the extracted measurements displayed in Figure \ref{fig:rb_lc_obs}.
 
 \begin{table}[H]
   \centering
@@ -483,7 +483,7 @@ Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=
  Obs.\ frequency & $0.222$ Hz \\ \hline
  Integration time & $3$ seconds \\ \hline
   \end{tabular}
-  \label{tb:case1_in}
+  \label{tb:case2_in}
 \end{table}
 
 \begin{figure}[H]
@@ -493,6 +493,8 @@ Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=
   \label{fig:rb_lc_obs}
 \end{figure}
 
+This light curve shows clear periodicity, but has a high estimated standard deviation and a relatively low sampling rate due to the object's low brightness and the sensor readout time. Inversion was performed using $10^4$ initial guesses with the material and angular velocity assumptions listed in Table \ref{tb:case2_ass}. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case2_s}, inertia ratios in Figure \ref{fig:case2_i}, orientation MRPs in Figure \ref{fig:case2_p}, and angular velocities in Figure \ref{fig:case2_w}.
+
 \begin{table}[H]
   \centering
   \caption{Delta I rocket body inversion assumptions}
@@ -501,38 +503,41 @@ Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=
   \hline
   \textbf{Variable} & \textbf{Value} \\ \hline
  Uniform BRDF & $C_d=0.2$, $C_s=0.8$, $n=30$ \\ \hline
-  $\norm{\vctr{\omega}}_\text{max}$ & $8.31$ $\text{deg} / \text{s}^{-1}$ \\ \hline
-  \end{tabular}
-  \label{tb:case1_ass}
+ $\norm{\vctr{\omega}}_\text{max}$ & $8.31$ $\text{deg} / \text{s}^{-1}$ \\ \hline
+ $\ell$ & $1/100$ \\ \hline
+\end{tabular}
+  \label{tb:case2_ass}
 \end{table}
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.8\textwidth]{sphx_glr_results_002_2_00x.png}
-  \caption{Candidate solution inertia light curves compared to the real measurements in ADU for the Delta I (Star-37E) rocket body.}
+  \caption{Candidate solution light curves compared to the real measurements in ADU for the Delta I (Star-37E) rocket body.}
   \label{fig:case2_s}
 \end{figure*}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\figmed]{sphx_glr_results_001_2_00x.png}
-  \caption{Candidate solution inertia ratio distribution for the Delta I (Star-37E) rocket body.}
+  \caption{Candidate solution inertia ratio distribution for the Delta I (Star-37E) rocket body, non-candidate converged minima are plotted in grey.}
   \label{fig:case2_i}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\figmed]{sphx_glr_results_006.png}
-  \caption{Candidate solution orientation MRPs for the Delta I (Star-37E) rocket body.}
+  \caption{Candidate solution orientation MRPs for the Delta I (Star-37E) rocket body, non-candidate converged minima are plotted in grey.}
   \label{fig:case2_p}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\figmed]{sphx_glr_results_005.png}
-  \caption{Candidate solution angular velocities for the Delta I (Star-37E) rocket body.}
+  \caption{Candidate solution angular velocities for the Delta I (Star-37E) rocket body, non-candidate converged minima are plotted in grey.}
   \label{fig:case2_w}
 \end{figure}
+
+The candidate solutions identified by the inversion process produce light curves which adequately approximate the measurements, although they do not reach the lowest observed values. This indicates that the true material is more dominated by specular reflections than our assumed coefficients. The candidates show some rough clustering in both orientation and angular velocity space, although they vary significantly in angular velocity magnitude. The inertia tensor solutions display similar variability, although the solutions are spread relatively uniformly from the initial guess, possibly indicating that it was reasonably unbiased. Taken together, these results indicate that the object could be spinning in a number of attitude profiles, and that more information is needed about its true mass distribution and reflectivity to further refine the solution set.
 
 \subsection{ECHOSTAR II}
 
@@ -575,6 +580,7 @@ assuming that the panels have negligible thickness. The overall inertia tensor f
   &= \text{diag} \left( 9512, 1771, 9609 \right) \: [kg \cdot m^2]
 \end{align}
 
+Table \ref{tb:case2_in} summarizes the light curve observations that result in the extracted measurements displayed in Figure \ref{fig:rb_lc_obs}.
 
 \begin{table}[H]
   \centering
@@ -590,7 +596,7 @@ assuming that the panels have negligible thickness. The overall inertia tensor f
  Obs.\ frequency & $0.388$ Hz \\ \hline
  Integration time & $1$ seconds \\ \hline
   \end{tabular}
-  \label{tb:case2_in}
+  \label{tb:case3_in}
 \end{table}
 
 \begin{figure}[H]
@@ -599,6 +605,8 @@ assuming that the panels have negligible thickness. The overall inertia tensor f
   \caption{Selected light curve for ECHOSTAR II, observed by the Purdue Optical Ground Station}
   \label{fig:sat_lc_obs}
 \end{figure}
+
+This light curve is sampled more densely than the Delta I observations, and clearly has significantly more intense specular peaks. Inversion was performed using $10^4$ initial guesses with the material and angular velocity assumptions listed in Table \ref{tb:case3_ass}. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case3_s}, inertia ratios in Figure \ref{fig:case3_i}, orientation MRPs in Figure \ref{fig:case3_p}, and angular velocities in Figure \ref{fig:case3_w}.
 
 \begin{table}[H]
   \centering
@@ -611,41 +619,44 @@ assuming that the panels have negligible thickness. The overall inertia tensor f
  MLI BRDF & $C_d=0.05$, $C_s=0.24$, $n=20$ \\ \hline
  Solar panel BRDF & $C_d=0.05$, $C_s=0.13$, $n=10$ \\ \hline
   $\norm{\vctr{\omega}}_\text{max}$ & $2.32$ $\text{deg} / \text{s}^{-1}$ \\ \hline
+  $\ell$ & $1/1000$ \\ \hline
   \end{tabular}
-  \label{tb:case2_ass}
+  \label{tb:case3_ass}
 \end{table}
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.8\textwidth]{sphx_glr_results_004_2_00x.png}
   \caption{Candidate solution inertia light curves compared to the real measurements in ADU for ECHOSTAR II.}
-  \label{fig:case2_s}
+  \label{fig:case3_s}
 \end{figure*}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\figmed]{sphx_glr_results_003_2_00x.png}
-  \caption{Candidate solution inertia ratio distribution for ECHOSTAR II.}
-  \label{fig:case2_i}
+  \caption{Candidate solution inertia ratio distribution for ECHOSTAR II, non-candidate converged minima are plotted in grey.}
+  \label{fig:case3_i}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\figmed]{sphx_glr_results_008.png}
-  \caption{Candidate solution orientation MRPs for ECHOSTAR II.}
-  \label{fig:case2_p}
+  \caption{Candidate solution orientation MRPs for ECHOSTAR II, non-candidate converged minima are plotted in grey.}
+  \label{fig:case3_p}
 \end{figure}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\figmed]{sphx_glr_results_007.png}
-  \caption{Candidate solution angular velocities for ECHOSTAR II.}
-  \label{fig:case2_w}
+  \caption{Candidate solution angular velocities for ECHOSTAR II, non-candidate converged minima are plotted in grey.}
+  \label{fig:case3_w}
 \end{figure}
+
+The candidate solutions identified by the inversion process are more sparse than those found in either of the previous rocket body cases, with some vague clustering in both angular velocity and orientation space. That said, the candidate light curves fit the data quite well. Notably, the formulation of the negative log-likelihood objective function in Equation \ref{eq:nll_loss} produces the behavior seen in the candidate solutions in Figure \ref{fig:case3_s}, where even the smallest recurrent specular peaks are well-estimated by most solutions. A similar effect -- giving up some of the statistical robustness of our formulation -- can be achieved in an unweighted optimization over the observations in magnitudes. The inertia tensor solutions are dispersed throughout the solution space, with less symmetry than the Delta I solutions. As in the Delta I case, more data about the mass and reflectivity of the object would be necessary to continue refining any of these candidates.
 
 \section{Conclusion}
 
-
+Attitude information is critical for many tasks informing space situational awareness. Orientation and angular velocity data aids high-fidelity orbit propagation, mission recovery efforts, and object selection for active debris removal. Obtaining attitude information is often difficult, especially for passive debris objects. Due to atmospheric distortion and diffraction-limited optics, ground-based telescopes can only determine a total brightness received from a space object. If a shape model is known, the light curve -- a sequence of these brightness measurements -- is one tool for attitude estimation. We presented an approach for solving this highly nonlinear and non-convex optimization problem with a gradient-based multistart method. We presented attitude inversion results for one case with synthetic data and two cases with real observations. Unlike other approaches, our method successfully identifies the numerous ambiguous solutions families -- originating from symmetries in the observation geometry and the object shape -- which may produce the same observations. These disparate candidate solutions can serve as starting points for more detailed exploration as additional light curves or further object shape information is obtained.
 
 \section*{Acknowledgments}
 
