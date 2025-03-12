@@ -108,40 +108,25 @@ Knowledge of spacecraft orientation and angular velocity states is critical for 
 
 Methods for estimating the attitude state of uncontrolled space objects from light curves differ significantly depending on the presence of an initial guess. If a guess is available, many filter-based approaches have been developed to process new photometry to update the guess orientation and angular velocity. This class of methods includes single Kalman filters \cite{burton2021two, gagnon2024, wetterer2009}, and multi-filter multiple-model adaptive estimation (MMAE) schemes \cite{linares2014space, dianetti2020}. These approaches can be very effective if the initial state estimate is close to the truth, but have been reported to diverge for orientation errors as small as $5^\circ$ in orientation and $0.03^\circ/s^{-1}$ in angular velocity \cite{gagnon2024} due measurement ambiguities and nonlinearity.
 
-If no initial attitude state is available, as in most cases of passive debris observation, the inversion problem must be solved globally. Filtering approaches can be applied here too; particle \cite{linares2014particle, holzinger2014} and Bayesian multi-hypothesis filters \cite{burton2021two, cabrera2023} have shown promise in prior work. If a reliable prior distribution for the attitude state is not available -- which it generally is not -- a Bayesian method may be inadvisable. In the absence of prior knowledge about the object's attitude state, simulated annealing \cite{gagnon2024, clark2020}, genetic algorithms \cite{gagnon2024, piergentili2017, clark2020}, and particle swarm optimizers (PSOs) \cite{clark2020, clark2022, burton2024journal, burton2024scitech, gagnon2024} can be applied to search the solution space exhaustively.
+If no initial attitude state is available, as in most cases of passive debris observation, the inversion problem must be solved globally. Filtering approaches can be applied here too; particle \cite{linares2014particle, holzinger2014} and Bayesian Multi-Hypothesis filters \cite{burton2021two, cabrera2023} have shown promise in prior work. Bayesian methods may be ineffective if a reliable prior distribution for the attitude state is not available. In the absence of prior knowledge about the object's attitude state, simulated annealing \cite{gagnon2024, clark2020}, genetic algorithms \cite{gagnon2024, piergentili2017, clark2020}, and particle swarm optimizers (PSOs) \cite{clark2020, clark2022, burton2024journal, burton2024scitech, gagnon2024} can be applied to search the solution space exhaustively.
 
-Much of the past literature on attitude inversion from real light curve data is centered on determining the constant spin rate and axis of rotation of the observed object. Frequency analysis in the form of periodograms, Fourier transforms, or epoch folding, is often used to determine the spin rate based on the light curve's frequency spectrum \cite{silha2015, silha2021, isoletta2024, schildknecht2015, pittet2017, yanagisawa2012, koshkin2018}. If optical material properties are known, the width of a single specular glint can provide sufficient information to determine the rotation rate \cite{hinks2016}. There has also been interest in tracking the evolution of spin rates over time for different classes of objects in different orbital regimes \cite{koshkin2018, blacketer2022, karpov2016}. These spin rate determination methods are designed for single-axis rotations and can fail for tumbling objects.
+While much work has performed full state attitude inversion on simulated light curve data \cite{burton2024journal, gagnon2024, robinson2025att}, studies using real data often focus on determining a constant spin rate and axis of rotation for the observed object. Frequency analysis in the form of periodograms, Fourier transforms, or epoch folding, is often used to determine the spin rate based on the light curve's frequency spectrum \cite{silha2015, silha2021, isoletta2024, schildknecht2015, pittet2017, yanagisawa2012, koshkin2018}. If optical material properties are known, the width of a single specular glint can provide sufficient information to determine the rotation rate \cite{hinks2016}. There has also been interest in tracking the evolution of spin rates over time for different classes of objects in different orbital regimes \cite{koshkin2018, blacketer2022, karpov2016}. These spin rate determination methods are designed for single-axis rotations and can fail for tumbling objects.
 
 The rotation axis is often estimated for diffusely reflecting objects that are well-approximated as ellipsoids via the so-called amplitude method \cite{williams1979location} which has been extended for combined spin and precession motion \cite{yanagisawa2012}. For light curves with strong specular peaks, the timing of these glints can be used to determine the constant rotation axis given multiple passes of observations \cite{vananti2023, koshkin2018}. These approaches are not applicable for generalized rigid body motion where no simplifying assumptions about the location of the spin axis are available.
 
 Works that seek to estimate a full rigid body attitude state from real data -- a time-varying orientation and angular velocity -- grid search \cite{shafer2017} and genetic algorithms \cite{piergentili2020, gallucci2020} have been used. These full-state estimation studies are limited by computational complexity, poor knowledge of material reflectivities, and the presence of measurement noise. 
 
-Our method is a global full-state attitude solver inspired by recent PSO work \cite{burton2024journal} but is easier to tune, can be fully parallelized, and is robust to significant measurement noise \cite{robinson2025att}. Further, our method differs from other global estimation methods in that we do not seek to find one optimal solution and instead search for a collection of high-quality local minima to directly study the many ambiguous solutions for a given light curve. To solve the optimization problem, we sample many candidate solutions scattered throughout the solution space and perform gradient-based optimization on each using the BFGS algorithm. Our optimization procedure reliably converges to high-quality maximum likelihood estimates of the attitude state. The final output of our method is an array of the best solutions, ranked by their likelihood. Clusters of low-error minima can be analyzed to identify families of solutions.
+Our method is a global full-state attitude solver inspired by recent PSO work \cite{burton2024journal} but is easier to tune, can be fully parallelized, and is robust to significant measurement noise \cite{robinson2025att}. Further, our method differs from other global estimation methods in that we do not seek to find one optimal solution and instead search for a collection of high-quality local minima to directly study the many ambiguous solutions for a given light curve. Our approach was designed specifically for use with real data as we take time-varying measurement noise and uncertainties in the body moments of inertia into account explicitly. 
 
-This work proceeds by describing the inversion method, discussing efficient methods for computing the time-varying probability density of the light curve, and presenting inversion results for the two test cases.
+To solve the optimization problem, we sample many candidate solutions scattered throughout the solution space and perform gradient-based optimization on each using the BFGS algorithm. Our optimization procedure reliably converges to high-quality maximum likelihood estimates of the attitude state. The final output of our method is an array of the best solutions, ranked by their likelihood. Clusters of low-error minima can be analyzed to identify families of solutions.
+
+This work proceeds by describing the inversion method, discussing efficient methods for computing the time-varying probability density of the light curve. We present inversion results for a simulated rocket body light curve where the ground truth is known, followed by two cases -- a derelict satellite and rocket body -- using real light curve data collected by the Purdue Optical Ground Station. A deeper treatment of our method and additional simulated light curve results can be found in a forthcoming publication by the authors \cite{robinson2025att}.
 
 \section{Inversion Method}
 
-\subsection{Objective Function}
-
-Our inversion method is based on the global minimization of a maximum-likelihood loss function which computes the negative log-likelihood of the observed light curve $\vctr{S}$ being a sample from the normal distribution defined by the estimated light curve mean $\hat{\vctr{S}}$ and the estimated standard deviation at each $k$th timestep $\sigma_k$:
-
-\begin{equation} \label{eq:nll_loss}
- f(\vctr{x}) = \frac{1}{m}\sum_{k=1}^{m}\left[\ln\sigma_k + \frac{1}{2}\left(\frac{S_k - \hat{S}_k(\vctr{x})}{\sigma_k}\right)^2 \right].
- \end{equation}
-
-If the reflectivity of the object's faces is not well-known, we rescale the estimated light curve mean $\hat{S}(\vctr{x})$ to have equal $\ell_2$ norm to the observations to resolve the inherent albedo-area ambiguity:
-
-\begin{equation}
- \hat{S}(\vctr{x}) = \frac{\norm{S}}{\norm{\tilde{S}(\vctr{x})}} \tilde{S}(\vctr{x}),
-\end{equation}
-
-\noindent
-where $\tilde{S}(\vctr{x})$ is the original, poorly scaled, estimated light curve. In this work, the light curve and its standard deviation are always assumed to be expressed in a linear unit, e.g., analog-to-digital units (ADU) or irradiance proportional to $W/m^2$.
-
 \subsection{State Definition and Dynamics}
 
-The state vector $\vctr{x}$ we optimize to fit the observed light curve is the concatenation of the Modified Rodriguez Parameter (MRP) $\vctr{p} = [p_1, p_2, p_3]^T$, the principal body frame angular velocity $\vctr{\omega} = [\omega_1, \omega_2, \omega_3]$ in radians per second, and the ratios of the principal moments of inertia $J_y / J_x$ and $J_z / J_x$ where the inertia tensor in principal axes is $J = \mathrm{diag}\left([J_x, J_y, J_z]\right)$:
+The state vector $\vctr{x}$ we optimize to fit the observed light curve is the concatenation of the Modified Rodriguez Parameter (MRP) $\vctr{p} = [p_1, p_2, p_3]^T$, the principal body frame angular velocity $\vctr{\omega} = [\omega_1, \omega_2, \omega_3]$ in radians per second, and the ratios of the principal moments of inertia $J_y / J_x$ and $J_z / J_x$ where the constant inertia tensor in principal axes is $J = \mathrm{diag}\left([J_x, J_y, J_z]\right)$:
 
 \begin{equation}
  \vctr{x} = \begin{bmatrix} 
@@ -155,6 +140,23 @@ The first six elements of the state vector are time-varying with dynamics given 
  \vctr{\dot{p}} &= \frac{1}{4} \left[ \left(1 - \vctr{p} \cdot \vctr{p}\right) + 2\vctr{p} \times \vctr{\omega} + 2 \left(\vctr{\omega} \cdot \vctr{p} \right)\vctr{p} \right], \label{eq:mrp_kde} \\
  \vctr{\dot{\omega}} &= J^{-1} \left[ \left(J \vctr{\omega}\right) \times \vctr{\omega} + \vctr{M}\right]. \label{eq:rbtf_dynamics}
 \end{align}
+
+\subsection{Objective Function}
+
+Our inversion method is based on the global minimization of a maximum-likelihood loss function which computes the negative log-likelihood of the observed light curve $\vctr{S}$ being a sample from the normal distribution defined by the estimated light curve mean $\hat{\vctr{S}}$ and the estimated standard deviation at each $k$th timestep $\sigma_k$:
+
+\begin{equation} \label{eq:nll_loss}
+ f(\vctr{x}) = \frac{1}{m}\sum_{k=1}^{m}\left[\ln\sigma_k + \frac{1}{2}\left(\frac{\vctr{S}_k - \hat{\vctr{S}}_k(\vctr{x})}{\sigma_k}\right)^2 \right].
+ \end{equation}
+
+If the reflectivity of the object's faces is not well-known, we rescale the estimated light curve mean $\hat{S}(\vctr{x})$ to have equal $\ell_2$ norm to the observations to resolve the inherent albedo-area ambiguity:
+
+\begin{equation}
+ \hat{S}(\vctr{x}) = \frac{\norm{S}}{\norm{\tilde{S}(\vctr{x})}} \tilde{S}(\vctr{x}),
+\end{equation}
+
+\noindent
+where $\tilde{S}(\vctr{x})$ is the original, poorly scaled, estimated light curve. In this work, the light curve and its standard deviation are always assumed to be expressed in a linear unit, e.g., analog-to-digital units (ADU) or irradiance proportional to $W/m^2$.
 
 \subsection{Running the Solver} \label{sec:run_solver}
 
@@ -225,7 +227,7 @@ As the objects we investigate in this work are well-approximated with relatively
 
 \subsection{Surface Reflectivity}
 
-The bidirectional reflectance distribution function (BRDF) defines the amount of incident radiation from $\unitv{s}$ reflected per steradian in the observer's direction $\unitv{o}$. We choose the Blinn-Phong \cite{blinn1977} BRDF for this work as it is efficient to compute and satisfies the three main requirements for a physically meaningful BRDF as it is nonnegative, energy-conserving, and reciprocal \cite{duvenhage2013}. We avoid microfacet models for computational efficiency, and because in practice, the uncertainty in the reflective properties of the observed objects will often be larger than errors introduced by the choice of reflection model. The Blinn-Phong BRDF is parameterized by the coefficient of diffuse reflectivity $C_d$, the coefficient of specular reflectivity $C_s$, and the specular exponent $n>0$:
+The bidirectional reflectance distribution function (BRDF) defines the amount of incident radiation from $\unitv{s}$ reflected per steradian in the observer's direction $\unitv{o}$. We choose the Blinn-Phong \cite{blinn1977} BRDF for this work as it is efficient to compute and satisfies the three main requirements for a physically meaningful BRDF as it is nonnegative, energy-conserving, and reciprocal \cite{duvenhage2013}. We avoid microfacet models for computational efficiency, and because in practice, the uncertainty in the reflective properties of the observed objects will often be larger than errors introduced by the choice of reflection model. The Blinn-Phong BRDF is parameterized by the coefficient of diffuse reflectivity $C_d$, the coefficient of specular reflectivity $C_s$, and the specular exponent $n>0$ \cite{duvenhage2013}:
 
 \begin{equation} \label{eq:brdf_blinn_phong}
  f_r(\unitv{s}, \unitv{o}) = \frac{C_d}{\pi} + \frac{n+2}{2\pi} \frac{C_s (\unitv{n} \cdot \unitv{h})^n}{4 (\unitv{n} \cdot \unitv{s})(\unitv{n} \cdot \unitv{o})}.
@@ -256,6 +258,8 @@ The output of Equation \ref{eq:lc_norm} is a light curve, but as many of the noi
 Here before the integral, $A_\circ$ is the unobstructed aperture area in square meters, $\Delta t_k$ is the exposure time in seconds, $f_\odot(\vctr{r})$ is the fraction of solar irradiance reaching the space object at position $\vctr{r}$ -- accounting for the Earth's shadow, $g$ is the sensor gain in ADU per photoelectron, $R_\oplus$ is the distance from the Sun to the space object in AU, $r_k$ is the distance from the observer to the space object in kilometers. Within the integral, we account for the telescope's passband filter $P(\lambda)$, the image sensor quantum efficiency $Q(\lambda)$, the atmospheric absorption spectrum $T_k(\lambda)$, the solar irradiance spectrum $I_\odot(\lambda)$, and the inverse energy of a photon with wavelength $\lambda$, $\lambda / hc$, where $h$ is Planck's constant in Joule-seconds, and $c$ is the speed of light in vacuum in meters per second. Taken together, the integral computes the fraction of the energy reflected from the object absorbed into the image sensor, while the outer factor dimensionalizes the result to yield the mean total sensor response in ADU across all pixels due to the object's signal.
 
 \subsection{Approximating the Measurement Noise}
+
+This section summarizes an in-depth study of relevant noise sources in CCD and CMOS sensor light curves by the authors in a forthcoming publication \cite{robinson2025twin}.
 
 The variance of a space object's observed brightness whose mean is determined by Equation \ref{eq:general_bright} is a combination of many independent stochastic processes. These distributions have variances $\sigma^2_\text{sensor}$ due to the sensor's integration and readout effects, $\sigma^2_\text{flat}$ from sensor flat-fielding effects, scintillation noise $\bar{S}_{\text{SO},k} \sigma^2_{Y,k}$ \cite{osborn2015}, Poisson signal shot noise $\lambda_{\text{shot},k}$, and Poisson background noise $\lambda_{\text{back},k}$. The sum of these variances yields the total signal variance in ADU:
 
@@ -309,14 +313,14 @@ After summation in Equation \ref{eq:sigma_total}, we can approximate the observe
 
 \subsection{Generating the Observed Light Curve}
 
-To demonstrate the effectiveness of our inversion method, we first present results for a simulated light curve where the ground truth is known and material property mismatch is insignificant. We produce a noisy, observed light curve for a high-fidelity model of the Saturn V second stage scaled down by a factor $10/3$ to act as a template rocket body object, shown in Figures \ref{fig:meas_model}.
+To demonstrate the effectiveness of our inversion method, we first present results for a simulated light curve where the ground truth is known and material property mismatch is insignificant. We produce a noisy, observed light curve for a high-fidelity model of the Saturn V second stage scaled down by a factor $10/3$ to act as a template rocket body object, shown on the right of Figure \ref{fig:rb_models}.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\figsmall]{rocket_bodies2.png}
-  \caption{Measured rocket body model \cite{nasa_models}.}
-  \label{fig:meas_model}
-\end{figure}
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=\figsmall]{rocket_bodies2.png}
+%   \caption{Simulated truth rocket body model \cite{nasa_models}.}
+%   \label{fig:meas_model}
+% \end{figure}
 
 Table \ref{tb:case1_in} describes the simulated observation scenario, placing the rocket body in the orbit of an SL-12 upper stage in geosynchronous orbit, observed by the Purdue Optical Ground Station. Relevant geographical and optical properties of this ground station are provided in the Appendix in Table \ref{tb:tele_info}. Table \ref{tb:synth_matprops} lists the material properties used in this test case.
 
@@ -367,14 +371,14 @@ The ground truth attitude profile and inertia tensor ratios of the simulated obj
 \end{table}
 \FloatBarrier
 
-Simulating the mean light curve and its approximate probability distribution via Equation \ref{eq:lc_dist} produces the light curve displayed in ADU in Figure \ref{fig:obs_adu_synth} and V-band magnitude in Figure \ref{fig:obs_mag_synth}.
+Simulating the mean light curve and its approximate probability distribution via Equation \ref{eq:lc_dist} produces the light curve displayed in V-band magnitude in Figure \ref{fig:obs_mag_synth}.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\figmed]{light_curves_adu_rocket_body_sdc.png}
-  \caption{Simulated observed flux for the rocket body.}
-  \label{fig:obs_adu_synth}
-\end{figure}
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=\figmed]{light_curves_adu_rocket_body_sdc.png}
+%   \caption{Simulated observed flux for the rocket body.}
+%   \label{fig:obs_adu_synth}
+% \end{figure}
 
 \begin{figure}[H]
   \centering
@@ -392,16 +396,16 @@ Simulating the mean light curve and its approximate probability distribution via
 
 \subsection{Synthetic Light Curve Optimization Results}
 
-To emulate the reality that the precise geometry of the observed object is usually uncertain, we use perform attitude inversion with a significantly simplified rocket body model, shown in Figure \ref{fig:inv_model}.
+To emulate the reality that the precise geometry of the observed object is usually uncertain, we use perform attitude inversion with a significantly simplified rocket body model, shown in Figure \ref{fig:rb_models}.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\figmed]{rocket_bodies1.png}
-  \caption{Simplified rocket body model used for inversion.}
-  \label{fig:inv_model}
+  \includegraphics[width=\figmed]{rocket_bodies.png}
+  \caption{Simplified rocket body model used for inversion (left) and simulated ground truth model (right).}
+  \label{fig:rb_models}
 \end{figure}
 
-A total of $10^5$ initial state guesses were created via the sampling scheme described in Section \ref{sec:run_solver} with $\norm{\vctr{\omega}}_\text{max}=5.26$ degrees per second. The inertia tensor ratios were initialized at the truth, but are allowed to be changed during optimization. BFGS minimization was then performed for each initial guess to locally solve the optimization problem given by Equation \ref{eq:opt_problem}. Classifying candidate solutions with $\ell = 1/10$ produces over $10^4$ solutions within this bound. Figure \ref{fig:conv_lcs_synth} shows the mean light curves produced by the identified candidate solutions. There is generally good agreement between the candidate light curves and the observations, indicating that high-quality local minima have been identified.
+A total of $10^5$ initial state guesses are created via the sampling scheme described in Section \ref{sec:run_solver} with $\norm{\vctr{\omega}}_\text{max}=5.26$ degrees per second. The inertia tensor ratios are initialized by sampling a symmetric Gaussian distribution with $\sigma=0.05 \: [kg\cdot m^2]$ on each axis to simulate a moderate level of inertia uncertainty. BFGS minimization was then performed for each initial guess to locally solve the optimization problem given by Equation \ref{eq:opt_problem}. Classifying candidate solutions with $\ell = 1/10$ produces over $10^4$ solutions within this bound. Figure \ref{fig:conv_lcs_synth} shows the mean light curves produced by the identified candidate solutions. There is generally good agreement between the candidate light curves and the observations, indicating that high-quality local minima have been identified.
 
 \begin{figure}[H]
   \centering
