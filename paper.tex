@@ -47,6 +47,7 @@
 % }
 % \makeatother
 
+\usepackage{subcaption}
 \usepackage{times}
 \usepackage[numbers]{natbib}
 \usepackage{graphicx}
@@ -313,7 +314,8 @@ After summation in Equation \ref{eq:sigma_total}, we can approximate the observe
 
 \subsection{Generating the Observed Light Curve}
 
-To demonstrate the effectiveness of our inversion method, we first present results for a simulated light curve where the ground truth is known and material property mismatch is insignificant. We produce a noisy, observed light curve for a high-fidelity model of the Saturn V second stage scaled down by a factor $10/3$ to act as a template rocket body object, shown on the right of Figure \ref{fig:rb_models}.
+
+To demonstrate the effectiveness of our inversion method, we first present results for a simulated light curve where the ground truth is known. In order to make this simulated case realistic, we use the presented measurement noise models and introduce a mismatch between the ground truth object used to generate the measurements and the model used in inversion. We produce a noisy, observed light curve for a high-fidelity model of the Saturn V second stage scaled down by a factor $10/3$ to act as a template rocket body object, shown on the right of Figure \ref{fig:rb_models}.
 
 % \begin{figure}[H]
 %   \centering
@@ -418,16 +420,82 @@ Figures \ref{fig:sigma_sols1} and \ref{fig:omega_sols1} display the candidate MR
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\figmed]{sigma_solsRocket Body.png}
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{sigma_solsRocket Body.png}
+    \caption{Uniform prior}
+    \label{fig:sigma_sols1a}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{sigma_solsRocket Body Prior.png}
+    \caption{Informative prior}
+    \label{fig:sigma_sols1b}
+  \end{subfigure}
+
   \caption{Candidate solution initial orientation MRP vectors, ground truth highlighted in red.}
   \label{fig:sigma_sols1}
 \end{figure}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\figmed]{omega_sols_Rocket Body.png}
-  \caption{Candidate solution initial body-frame angular velocities, ground truth highlighted in red.}
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{omega_sols_Rocket Body.png}
+    \caption{Uniform prior}
+    \label{fig:omega_sols1a}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{omega_sols_Rocket Body Prior.png}
+    \caption{Informative prior}
+    \label{fig:omega_sols1b}
+  \end{subfigure}
+
+  \caption{Candidate solution initial body-frame angular velocity vectors, ground truth highlighted in red. TODO: change the perspective on the angular velocities}
   \label{fig:omega_sols1}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{converged_solutions_2_Rocket Body.png}
+    \caption{Uniform prior}
+    \label{fig:i_sols1a}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{converged_solutions_2_Rocket Body Prior.png}
+    \caption{Informative prior}
+    \label{fig:i_sols1b}
+  \end{subfigure}
+
+  \caption{Candidate solution inertia ratios, ground truth highlighted in red.}
+  \label{fig:i_sols1}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{converged_solutions_3_Rocket Body.png}
+    \caption{Uniform prior}
+    \label{fig:w_vs_ang_error_sols1a}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{converged_solutions_3_Rocket Body Prior.png}
+    \caption{Informative prior}
+    \label{fig:w_vs_ang_error_sols1b}
+  \end{subfigure}
+
+  \caption{Candidate solution angular orientation error and angular velocity magnitudes compared to the truth}
+  \label{fig:w_vs_ang_error_sols1}
 \end{figure}
 
 % While the state vectors of the candidate solutions do not uniquely indicate the ground truth, the object's precession rate is estimated
@@ -497,7 +565,7 @@ Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=
   \label{fig:rb_lc_obs}
 \end{figure}
 
-This light curve shows clear periodicity, but has a high estimated standard deviation and a relatively low sampling rate due to the object's low brightness and the sensor readout time. Inversion was performed using $10^4$ initial guesses with the material and angular velocity assumptions listed in Table \ref{tb:case2_ass}. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case2_s}, inertia ratios in Figure \ref{fig:case2_i}, orientation MRPs in Figure \ref{fig:case2_p}, and angular velocities in Figure \ref{fig:case2_w}.
+This light curve shows clear periodicity, but has a high estimated standard deviation and a relatively low sampling rate due to the object's low brightness and the sensor readout time. Inversion was performed using $10^4$ initial guesses with the material and angular velocity assumptions listed in Table \ref{tb:case2_ass}. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case2_s}, orientation MRPs and angular velocities in Figure \ref{fig:case2_pw}, and inertia ratios in Figure \ref{fig:case2_i}.
 
 \begin{table}[H]
   \centering
@@ -520,25 +588,45 @@ This light curve shows clear periodicity, but has a high estimated standard devi
   \label{fig:case2_s}
 \end{figure*}
 
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=\figmed]{sphx_glr_results_006.png}
+%   \caption{}
+%   \label{fig:case2_p}
+% \end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{sphx_glr_results_006.png}
+    \caption{MRP}
+    \label{fig:case2_pwa}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{sphx_glr_results_005.png}
+    \caption{Angular velocity}
+    \label{fig:case2_pwb}
+  \end{subfigure}
+
+  \caption{Candidate solution orientation MRPs and angular velocity vectors for the Delta I (Star-37E) rocket body}
+  \label{fig:case2_pw}
+\end{figure}
+
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=\figmed]{sphx_glr_results_005.png}
+%   \caption{Candidate solution angular velocities for the Delta I (Star-37E) rocket body}
+%   \label{fig:case2_w}
+% \end{figure}
+
 \begin{figure}[H]
   \centering
   \includegraphics[width=\figmed]{sphx_glr_results_001_2_00x.png}
-  \caption{Candidate solution inertia ratio distribution for the Delta I (Star-37E) rocket body, non-candidate converged minima are plotted in grey.}
+  \caption{Candidate solution inertia ratio distribution for the Delta I (Star-37E) rocket body}
   \label{fig:case2_i}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\figmed]{sphx_glr_results_006.png}
-  \caption{Candidate solution orientation MRPs for the Delta I (Star-37E) rocket body, non-candidate converged minima are plotted in grey.}
-  \label{fig:case2_p}
-\end{figure}
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\figmed]{sphx_glr_results_005.png}
-  \caption{Candidate solution angular velocities for the Delta I (Star-37E) rocket body, non-candidate converged minima are plotted in grey.}
-  \label{fig:case2_w}
 \end{figure}
 
 The candidate solutions identified by the inversion process produce light curves which adequately approximate the measurements, although they do not reach the lowest observed values. This indicates that the true material is more dominated by specular reflections than our assumed coefficients. The candidates show some rough clustering in both orientation and angular velocity space, although they vary significantly in angular velocity magnitude. The inertia tensor solutions display similar variability, although the solutions are spread relatively uniformly from the initial guess, possibly indicating that it was reasonably unbiased. Taken together, these results indicate that the object could be spinning in a number of attitude profiles, and that more information is needed about its true mass distribution and reflectivity to further refine the solution set.
@@ -610,7 +698,7 @@ Table \ref{tb:case2_in} summarizes the light curve observations that result in t
   \label{fig:sat_lc_obs}
 \end{figure}
 
-This light curve is sampled more densely than the Delta I observations, and clearly has significantly more intense specular peaks. Inversion was performed using $10^4$ initial guesses with the material and angular velocity assumptions listed in Table \ref{tb:case3_ass}. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case3_s}, inertia ratios in Figure \ref{fig:case3_i}, orientation MRPs in Figure \ref{fig:case3_p}, and angular velocities in Figure \ref{fig:case3_w}.
+This light curve is sampled more densely than the Delta I observations, and clearly has significantly more intense specular peaks. Inversion was performed using $10^4$ initial guesses with the material and angular velocity assumptions listed in Table \ref{tb:case3_ass}. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case3_s}, orientation MRPs and angular velocities in Figure \ref{fig:case3_pw}, and inertia ratios in Figure \ref{fig:case3_i}.
 
 \begin{table}[H]
   \centering
@@ -644,17 +732,38 @@ This light curve is sampled more densely than the Delta I observations, and clea
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\figmed]{sphx_glr_results_008.png}
-  \caption{Candidate solution orientation MRPs for ECHOSTAR II, non-candidate converged minima are plotted in grey.}
-  \label{fig:case3_p}
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{sphx_glr_results_008.png}
+    \caption{MRP}
+    \label{fig:case3_pwa}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.23\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{sphx_glr_results_007.png}
+    \caption{Angular velocity}
+    \label{fig:case3_pwb}
+  \end{subfigure}
+
+  \caption{Candidate solution orientation MRPs and angular velocity vectors for ECHOSTAR II}
+  \label{fig:case3_pw}
 \end{figure}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\figmed]{sphx_glr_results_007.png}
-  \caption{Candidate solution angular velocities for ECHOSTAR II, non-candidate converged minima are plotted in grey.}
-  \label{fig:case3_w}
-\end{figure}
+
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=\figmed]{sphx_glr_results_008.png}
+%   \caption{Candidate solution orientation MRPs for ECHOSTAR II, non-candidate converged minima are plotted in grey.}
+%   \label{fig:case3_p}
+% \end{figure}
+
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=\figmed]{sphx_glr_results_007.png}
+%   \caption{Candidate solution angular velocities for ECHOSTAR II, non-candidate converged minima are plotted in grey.}
+%   \label{fig:case3_w}
+% \end{figure}
 
 The candidate solutions identified by the inversion process are more sparse than those found in either of the previous rocket body cases, with some vague clustering in both angular velocity and orientation space. That said, the candidate light curves fit the data quite well. Notably, the formulation of the negative log-likelihood objective function in Equation \ref{eq:nll_loss} produces the behavior seen in the candidate solutions in Figure \ref{fig:case3_s}, where even the smallest recurrent specular peaks are well-estimated by most solutions. A similar effect -- giving up some of the statistical robustness of our formulation -- can be achieved in an unweighted optimization over the observations in magnitudes. The inertia tensor solutions are dispersed throughout the solution space, with less symmetry than the Delta I solutions. As in the Delta I case, more data about the mass and reflectivity of the object would be necessary to continue refining any of these candidates.
 
