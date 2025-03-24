@@ -47,6 +47,8 @@
 % }
 % \makeatother
 
+\usepackage{colortbl}
+\usepackage{booktabs}
 \usepackage{subcaption}
 \usepackage{times}
 \usepackage[numbers]{natbib}
@@ -56,6 +58,9 @@
 \usepackage{amssymb}
 \usepackage{amsfonts}
 \usepackage{adjustbox}
+
+\newcommand{\grule}[0]{\arrayrulecolor{darkgray}\cmidrule(){1-2}}
+\newcommand{\brule}[0]{\arrayrulecolor{black} \bottomrule}
 
 \newcommand{\vctr}[1]{\bm{#1}}
 \newcommand{\unitv}[1]{\hat{\vctr{#1}}}
@@ -99,31 +104,19 @@
 
 Understanding the orientation and angular velocity state of active or passive human-made space objects is critical for many space situational awareness operations like long-term orbit propagation, anomaly resolution, determining mission status, and active debris removal. Beyond low-Earth orbit, optical telescopes are predominantly used to track space objects. Due to atmospheric distortion and aperture size, it is generally impossible to resolve even large satellites and rocket bodies in optical ground-based imagery. As a result, shape and orientation information is unavailable in individual images, but a measurement of the object's total brightness can still be obtained. Even if the object's shape and reflective properties are known, any given brightness measurement will generally correspond to infinitely many possible orientations. To constrain the solution space, the brightness can be tracked over time -- producing a sequence of measurements called a light curve. If the object's identity is known, its attitude profile can be estimated from the light curve -- up to certain ambiguities -- through a process known as light curve attitude inversion. Due to symmetries in the observation geometry and object shape, there may be multiple attitude profiles that are equally likely to produce any given light curve. Environmental and instrumental measurement noise worsens these ambiguities. To reliably identify these ambiguous solutions, global attitude inversion methods must thoroughly search the solution space.
 
-In this work, we apply a BFGS-based multi-start global attitude inversion algorithm to synthetic observations of an upper stage and real observations taken by the Purdue Optical Ground Station of a Delta I upper stage and the ECHOSTAR II satellite. Given a light curve with an estimate of the shape and reflective properties of the object, our procedure searches the space of initial orientations, angular velocities, and inertia tensors to find initial conditions that produce light curves with low error compared to the observed values. Our formulation inherently accounts for the aforementioned ambiguities, the physical constraints of torque-free rigid body motion, and the noise in the light curve.
+In this work, we apply a BFGS-based multi-start global attitude inversion algorithm to efficiently solve the attitude inversion problem globally. Results for synthetic observations are presented for a generic upper stage. Results for real observations taken by the Purdue Optical Ground Station of Delta I upper stage and the ECHOSTAR II satellite are also presented. Given a light curve with an estimate of the shape and reflective properties of the object, our procedure searches the space of initial orientations, angular velocities, and inertia tensors to find initial conditions that produce light curves with low error compared to the observed values. Our formulation inherently accounts for the aforementioned ambiguities, the physical constraints of torque-free rigid body motion, and the noise in the light curve.
 
 \end{abstract}
-
-\section{Global TODO list}
-
-\begin{itemize}
-  \item Add the constant term back into the objective function (in text and code) so we can start treating it as a real likelihood, useful for the future
-  \item Mention the unknown solar panel rotation angle for ECHOSTAR
-  \item Update perspective on some the case 1a angular velocity plot
-  \item Update $n_\text{guess}$ values everywhere to reflect the scripts
-  \item Update $\omega$ sampling scheme to go from $0.5-2$ as reflected in scripts
-  \item Re-run all cases to ensure that values are up to date with recent changes, update where those statistics are reported in the text
-  \item Try to get rid of big gaps where possible
-\end{itemize}
 
 \section{Introduction}
 
 Knowledge of spacecraft orientation and angular velocity states is critical for many space situational awareness (SSA) tasks. Understanding the evolution of high area-to-mass ratio objects \cite{frueh2014} and decommissioned satellites \cite{rachman2023}, planning and executing active debris removal \cite{bonnal2013}, and recovering from mission anomalies \cite{umansky2023} all require attitude information. 
 
-Methods for estimating the attitude state of uncontrolled space objects from light curves differ significantly depending on the presence of an initial guess. If a guess is available, many filter-based approaches have been developed to process new photometry to update the guess orientation and angular velocity. This class of methods includes single Kalman filters \cite{burton2021two, gagnon2024, wetterer2009}, and multi-filter multiple-model adaptive estimation (MMAE) schemes \cite{linares2014space, dianetti2020}. These approaches can be very effective if the initial state estimate is close to the truth, but have been reported to diverge even in cases when the initial guess guess is within $5^\circ$ of the ground truth orientation and $0.03^\circ/s^{-1}$ in angular velocity error \cite{gagnon2024} due to measurement nonlinearity and ambiguities.
+Methods for estimating the attitude state of uncontrolled space objects from light curves differ significantly depending on the presence of an initial guess. If prior knowledge is available, many filter-based approaches have been developed to process new photometry to update the guess orientation and angular velocity. This class of methods includes single Kalman filters \cite{burton2021two, gagnon2024, wetterer2009}, and multi-filter multiple-model adaptive estimation (MMAE) schemes \cite{linares2014space, dianetti2020}. These approaches can be very effective if the initial state estimate is close to the truth, but have been reported to diverge even in cases when the initial guess is within $5^\circ$ of the ground truth orientation and $0.03^\circ/s^{-1}$ in angular velocity error \cite{gagnon2024} due to measurement nonlinearity and ambiguities.
 
-If no initial attitude guess is available, as in most cases of passive debris observation, the inversion problem must be solved globally. Filtering approaches can be applied here too; particle \cite{linares2014particle, holzinger2014} and Bayesian Multi-Hypothesis filters \cite{burton2021two, cabrera2023} have shown promise in prior work, but still rely on high-quality priors as with the Kalman filters. In the absence of prior knowledge about the object's attitude state, simulated annealing \cite{gagnon2024, clark2020}, genetic algorithms \cite{gagnon2024, piergentili2017, clark2020}, and particle swarm optimizers (PSOs) \cite{clark2020, clark2022, burton2024journal, burton2024scitech, gagnon2024, gagnon2025} can be applied to search the solution space exhaustively.
+If no initial attitude guess is available, as in most cases of passive debris observation, the inversion problem must be solved globally. Filtering approaches can be applied here too; particle \cite{linares2014particle, holzinger2014} and Bayesian Multi-Hypothesis filters \cite{burton2021two, cabrera2023} have shown promise in prior work, but still rely on high-quality priors as with the single-hypothesis Kalman filters. In the absence of any prior knowledge about the object's attitude state, simulated annealing \cite{gagnon2024, clark2020}, genetic algorithms \cite{gagnon2024, piergentili2017, clark2020}, and particle swarm optimizers (PSOs) \cite{clark2020, clark2022, burton2024journal, burton2024scitech, gagnon2024, gagnon2025} can be applied to search the solution space exhaustively.
 
-While much work has performed full state attitude inversion on simulated light curve data \cite{burton2024journal, gagnon2024, robinson2025att}, studies using real data often focus on determining a constant spin rate and axis of rotation for the observed object.
+While much work has performed full state attitude inversion on simulated light curve data \cite{burton2024journal, gagnon2024, robinson2025att}, studies using real data often focus on estimating an assumed constant spin rate and axis of rotation for the observed object. These assumptions simplifies the estimation process, but can lead to misleading conclusions when the observed object has a complex rotation state.
 
 Frequency analysis in the form of periodograms, Fourier transforms, or epoch folding, is often used to determine the spin rate based on the light curve's frequency spectrum \cite{silha2015, silha2021, isoletta2024, schildknecht2015, pittet2017, yanagisawa2012, koshkin2018}. If optical material properties are known, the width of a single specular glint can provide sufficient information to determine the rotation rate \cite{hinks2016}. There has also been interest in tracking the evolution of spin rates over time for different classes of objects in different orbital regimes \cite{koshkin2018, blacketer2022, karpov2016}. These spin rate determination methods are designed for single-axis rotations and can fail for tumbling objects.
 
@@ -135,7 +128,7 @@ In this paper, we describe a global full-state attitude solver inspired by recen
 
 To solve the optimization problem, we sample many candidate solutions scattered throughout the solution space and perform gradient-based optimization on each using the BFGS algorithm. Our optimization procedure reliably converges to high-quality maximum likelihood estimates of the attitude state. The final output of our method is an array of the best solutions, ranked by their likelihood. Clusters of low-error minima can be analyzed to identify families of solutions.
 
-This work proceeds by describing the inversion method, discussing efficient methods for computing the time-varying probability density of the light curve. We present inversion results for a simulated rocket body light curve where the ground truth is known, followed by two cases -- a derelict satellite and rocket body -- using real light curve data collected by the Purdue Optical Ground Station. A deeper treatment of our method and additional simulated light curve results can be found in \cite{robinson2025att}.
+This work proceeds by describing the inversion method, discussing efficient methods for computing the time-varying probability density of the light curve. We present inversion results for a simulated rocket body light curve where the ground truth is available to demonstrate the efficacy of the method, followed by results for real light curve data collected by the Purdue Optical Ground Station for a derelict ECHOSTAR satellite and Delta I rocket body. A deeper treatment of our method and additional simulated light curve results can be found in \cite{robinson2025att}.
 
 \section{Inversion Method}
 
@@ -161,10 +154,10 @@ The first six elements of the state vector are time-varying with dynamics given 
 Our inversion method is based on the global minimization of a maximum-likelihood loss function which computes the negative log-likelihood of the observed light curve $\vctr{S}$ being a sample from the normal distribution defined by the estimated light curve mean $\hat{\vctr{S}}$ and the standard deviation at each $k$th timestep $\sigma_k$:
 
 \begin{equation} \label{eq:nll_loss}
- f(\vctr{x}) = \frac{1}{m}\sum_{k=1}^{m}\left[\ln\sigma_k + \frac{1}{2}\left(\frac{\vctr{S}_k - \hat{\vctr{S}}_k(\vctr{x})}{\sigma_k}\right)^2 \right].
+ f(\vctr{x}) = \frac{1}{m}\sum_{k=1}^{m}\left[\frac{1}{2} \ln2\pi + \ln\sigma_k + \frac{1}{2}\left(\frac{\vctr{S}_k - \hat{\vctr{S}}_k(\vctr{x})}{\sigma_k}\right)^2 \right].
  \end{equation}
 
-If the reflectivity of the object's faces is not well-known, we rescale the estimated light curve mean $\hat{S}(\vctr{x})$ to have equal $\ell_2$ norm to the observations to resolve the inherent albedo-area ambiguity:
+Note that the constant $0.5\ln2\pi$ could be removed from the objective function, but it is retained such that $\text{exp}\left(-f(\vctr{x})\right)$ is a true likelihood. If the reflectivity of the object's faces is not well-known, we rescale the estimated light curve mean $\hat{S}(\vctr{x})$ to have equal $\ell_2$ norm to the observations to resolve the inherent albedo-area ambiguity:
 
 \begin{equation}
  \hat{S}(\vctr{x}) = \frac{\norm{S}}{\norm{\tilde{S}(\vctr{x})}} \tilde{S}(\vctr{x}),
@@ -175,43 +168,41 @@ where $\tilde{S}(\vctr{x})$ is the original, poorly scaled, estimated light curv
 
 \subsection{Computing Local Minima} \label{sec:run_solver}
 
-Our multi-start solution method begins by creating $n_\text{guess}$ guesses scattered throughout the solution space -- possibly sampled from a prior distribution based on available knowledge. In the most basic case, the initial state guess is sampled for guess $i$ at iteration $k=0$:
+Our multi-start solution method begins by creating $n_\text{sample}$ sampled states scattered throughout the solution space -- possibly sampled from a prior distribution based on available knowledge. In the most basic case, the initial states are drawn for sample $i$ at iteration $k=0$:
 
 \begin{equation}
  \vctr{x}_{0,i}(0) = \begin{bmatrix}\vctr{p}_{i,0}(0) \\ \vctr{\omega}_{i,0}(0) \\ \left(J_y / J_x\right)_{i,0} \\ \left(J_z / J_x\right)_{i,0}\end{bmatrix}.
 \end{equation}
 
-In this work, initial guesses for the state vector are sampled from a prior distribution, usually defined independently for the MRP, angular velocity, and inertia tensor ratios. If no information is available, a uniform distribution is sampled from for the first six components of the state. In particular, $\vctr{p}_{i,0}(0)$ is uniformly randomly sampled from orientation space, $\vctr{\omega}_{i,0}(0)$ is randomly sampled from a uniform distribution of magnitudes up to $\norm{\vctr{\omega}}_\text{max}$ -- the maximum angular rate at which to initialize guesses. We determine $\norm{\vctr{\omega}}_\text{max}$ based on the maximum power positive frequency in the observed light curve $f^\star$ in Hertz and an arbitrary safety factor $f_\omega \geq 1$, selected as $f_\omega = 1.25$ for this work:
+In this work, initial state vectors are sampled from a prior distribution, usually defined independently for the MRP, angular velocity, and inertia tensor ratios. If no information is available, as is usually the case, a uniform distribution is sampled from for the first six components of the state. In particular, $\vctr{p}_{i,0}(0)$ is uniformly randomly sampled from orientation space, $\vctr{\omega}_{i,0}(0)$ is randomly sampled from a uniform distribution of magnitudes up to $\norm{\vctr{\omega}}_\text{max}$ -- the maximum angular rate at which to initialize state samples. We determine $\norm{\vctr{\omega}}_\text{max}$ based on the maximum power positive frequency in the observed light curve $f^\star$ in Hertz and an arbitrary safety factor $f_\omega \geq 1$, selected as $f_\omega = 1.25$ for this work:
 
 \begin{equation} \label{eq:ang_vel_max}
   \norm{\vctr{\omega}}_\text{max} = 2\pi f_\omega f^\star.
 \end{equation}
 
-Uniformly sampling over angular velocity directions, we can express the default sampling strategy for an angular velocity guess as:
+Uniformly sampling over angular velocity directions, we can express the default sampling strategy for an angular velocity state as:
 
 \begin{equation} \label{eq:omega_sampler}
   \vctr{\omega}_{i,0}(0) = \frac{m}{\sqrt{g_1^2+g_2^2+g_3^2}} \cdot \begin{bmatrix} g_1 & g_2 & g_3 \end{bmatrix}^T,
 \end{equation}
 
 \noindent
-where $g_{1:3} \in \mathcal{N}(0,1)$ and $m=\mathcal{U}(0,\norm{\vctr{\omega}}_\text{max})$.
+where $g_{1:3} \in \mathcal{N}(0,1)$ and $m=\mathcal{U}(c_1 \norm{\vctr{\omega}}_\text{max}, c_2 \norm{\vctr{\omega}}_\text{max})$. The constants $c_1<1$ and $c_2>1$ are chosen to correct for the fact that even for a well-chosen bound $\norm{\vctr{\omega}}_\text{max}$, there can still be numerous high-quality solutions at significantly lower or higher angular velocities that possess equal $f^\star$ values. This is a result of object shape symmetries or harmonics in spin and precession rates. We select $c_1=0.5$, $c_2=2$ for this work.
 
-Even for a well-chosen bound $\norm{\vctr{\omega}}_\text{max}$, there may still be numerous high-quality solutions at significantly lower or higher angular velocities that possess equal $f^\star$ values due to object shape symmetries or harmonics in spin and precession rates, respectively. As a result, it is usually unwise to directly constrain the angular velocity to a given magnitude unless additional, unambiguous information is available.
-
-Similarly for the MRP, we first sample a quaternion $\vctr{q}_i(0) = [q_x, q_y, q_z, q_w]^T$ uniformly over orientation space:
+For the MRP, we first sample a quaternion $\vctr{q}_i(0) = [q_x, q_y, q_z, q_w]^T$ uniformly over orientation space:
 
 \begin{equation}
   \vctr{q}_i(0) = \frac{1}{\sqrt{g_1^2 + g_2^2 + g_3^2 + g_4^2}} \begin{bmatrix} g_1 & g_2 & g_3 & g_4 \end{bmatrix}^T,
 \end{equation}
 
 \noindent
-and project the quaternion into MRP space:
+where $g_{1:4} \in \mathcal{N}(0,1)$, and project the quaternion into MRP space:
 
 \begin{equation} \label{eq:mrp_sampler}
   \vctr{p}_{i,0}(0) = \frac{1}{1 + q_w} \begin{bmatrix} q_x & q_y & q_z \end{bmatrix}^T.
 \end{equation}
 
-Unlike the MRP and angular velocity, the default sampling method for inertia ratios initial guesses $\left(J_y / J_x\right)_{i,0}$ and $\left(J_z / J_x\right)_{i,0}$ draws from independent, identically distributed Gaussian prior distributions with $\sigma_J$ centered at estimated values derived from the known geometry of the object $\left(J_y / J_x\right)_\text{est}$ and $\left(J_z / J_x\right)_\text{est}$, such that:
+Unlike the MRP and angular velocity, the default sampling method for inertia ratios initial samples $\left(J_y / J_x\right)_{i,0}$ and $\left(J_z / J_x\right)_{i,0}$ draws from independent, identically distributed Gaussian prior distributions with $\sigma_J$ centered at estimated values derived from the known geometry of the object $\left(J_y / J_x\right)_\text{est}$ and $\left(J_z / J_x\right)_\text{est}$, such that:
 
 \begin{equation}
   \begin{bmatrix}
@@ -224,7 +215,7 @@ Unlike the MRP and angular velocity, the default sampling method for inertia rat
 \noindent
 where $I_2$ is the $2\times2$ identity matrix.
 
-After computing each initial state guess, we run the Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm \cite{broyden1970, fletcher1970, goldfarb1970, shanno1970} to optimize each guess to a nearby local minimum $\vctr{x}_{k,i}(0)$ in the objective function such that:
+After sampling each initial state, we run the Broyden-Fletcher-Goldfarb-Shanno (BFGS) algorithm \cite{broyden1970, fletcher1970, goldfarb1970, shanno1970} to optimize each sample to a nearby local minimum $\vctr{x}_{k,i}(0)$ in the objective function such that:
 
 \begin{equation} \label{eq:opt_problem}
  \vctr{x}_{k,i}(0) = \argmin_{\vctr{x}} f(\vctr{x}),
@@ -237,7 +228,7 @@ In order to implement this optimization effectively without constraints, it is o
 
 \subsection{Classifying Candidate Solutions} \label{sec:candidate_sols}
 
-Although all initial conditions will converge to some nearby local minimum, many of these minima will possess a low likelihood determined by $-\mathrm{exp}(f(\vctr{x}))$. As we do not generally know how large the geometric and material mismatch between the observed object and the assumed model is, we cannot put a strict bound on a likelihood level that constitutes a high-quality candidate solution. In this work, we identify candidate solutions by choosing a likelihood ratio tolerance $0 < \ell < 1$, such that all solutions $\vctr{x}_{i,k}(0)$ are candidates for the truth if:
+Although all initial conditions will converge to some nearby local minimum, many of these minima will possess a low likelihood determined by $-\mathrm{exp}(f(\vctr{x}))$ where $f(\vctr{x})$ is the objective function in Equation \ref{eq:nll_loss}. As we do not generally know how large the geometric and material mismatch between the observed object and the assumed model is, we cannot put a strict bound on a likelihood level that constitutes a high-quality candidate solution. In this work, we identify candidate solutions by choosing a likelihood ratio tolerance $0 < \ell < 1$, such that all solutions $\vctr{x}_{i,k}(0)$ are candidates for the truth if:
 
 \begin{equation} \label{eq:ell_selection_criteria}
   e^{-f\left(\vctr{x}_{i,k}(0)\right)} > \ell e^{-f\left(\vctr{x}^\star_{k}(0)\right)}.
@@ -257,7 +248,7 @@ We choose to represent the surface geometry of space objects as a polyhedral mes
  A(P) = \sum_{j=0}^{k-3} \frac{\| \left( \vctr{v}_{j+1} - \vctr{v}_{j} \right) \times \left( \vctr{v}_{j+2} - \vctr{v}_{j} \right)\|_2}{2}.
  \end{equation} 
  
- In any particular illumination and observation condition, a fraction of the facet's area $\tilde{a}_i$ may be Sun- or observer-shadowed due to obstructing geometry before or after light reaches the surface element, respectively. The remainder of the facet's area $\bar{a}_i$ is unshadowed and contributes to the total flux reaching the observer from the object, such that the total area of each facet is $a_i = \tilde{a}_i + \bar{a}_i$. The geometry for an individual facet is displayed in Figure \ref{fig:facet_geom}.
+ In any particular illumination and observation condition, a fraction of the facet's area $\tilde{a}_i$ might be Sun or observer-shadowed due to obstructing geometry before or after light reaches the surface element, respectively. The remainder of the facet's area $\bar{a}_i$ is unshadowed and contributes to the total flux reaching the observer from the object, such that the total area of each facet is $a_i = \tilde{a}_i + \bar{a}_i$. The geometry for an individual facet is displayed in Figure \ref{fig:facet_geom}.
 
 \begin{figure}[H]
   \centering
@@ -270,13 +261,13 @@ In this work, the Sun position is computed using a SPICE ephemeris kernel \cite{
 
 \subsection{Computing the Unshadowed Area}
 
-The unshadowed area $\bar{a}$ may be computed in several ways. For convex objects, $\bar{a}=a$ as self-shadowing is impossible. For highly nonconvex and detailed models composed of thousands of faces, $\bar{a}$ can be approximated on a pixel grid using shadow mapping \cite{robinson2022}. Self-shadowing can be efficiently solved semi-analytically for lower-fidelity approximations of real space object geometry by computing the mutual intersections of the polygons $P_k$ of other faces whose projections overlap with the face in question. Up to a maximum intersection depth $d$, selected for computation time, the unshadowed area can be computed via:
+The unshadowed area $\bar{a}$ can be computed in several ways. For convex objects, $\bar{a}=a$ as self-shadowing is impossible. For highly nonconvex and detailed models composed of thousands of faces, $\bar{a}$ can be approximated on a pixel grid using shadow mapping \cite{robinson2022}. Self-shadowing can be efficiently solved semi-analytically for lower-fidelity approximations of real space object geometry by computing the mutual intersections of the polygons $P_k$ of other faces whose projections overlap with the face in question. Up to a maximum intersection depth $d$, selected for computation time, the unshadowed area can be computed via:
 
 \begin{equation} \label{eq:us_area}
  \bar{a} = a - \sum_{d=1}^{n} \sum_{K \in \text{comb}(n,d)} (-1)^{d+1} A\left(\bigcap\limits_{k \in K} P_k\right).
 \end{equation}
 
-As the objects we investigate in this work are well-approximated with relatively simple non-convex meshes, we use the semi-analytic method to efficiently compute unshadowed areas via the Sutherland-Hodgeman algorithm \cite{sutherland1974} for each polygon intersection. Further explanation of the polygon clipping procedure for computing the total shadowed area and accelerating this computation during inversion with the so-called shadow cache is included here \textbf{TODO: should this be a `here'? wording this felt weird if we're avoiding saying like `the authors'"} \cite{robinson2025att}.
+As the objects we investigate in this work are well-approximated with relatively simple non-convex meshes, we use the semi-analytic method to efficiently compute unshadowed areas via the Sutherland-Hodgeman algorithm \cite{sutherland1974} for each polygon intersection. Further explanation of the polygon clipping procedure for computing the total shadowed area, and accelerating this computation during inversion with the so-called shadow cache is available here \cite{robinson2025att}.
 
 \subsection{Surface Reflectivity}
 
@@ -300,7 +291,7 @@ Given the observer $\unitv{o}_k$ and illumination directions $\unitv{s}_k$ at th
   \end{split} 
 \end{equation}
 
-The output of Equation \ref{eq:lc_norm} is a light curve, but as many of the noise characteristics of the signal are defined in the image sensor's native unit of ADU, we convert the light curve into the same units via:
+As many of the noise characteristics of the signal are defined in the image sensor's native unit of ADU, we use $f_p(\unitv{s}_k, \unitv{o}_k)$ to compute the light curve in ADU via:
 
 \begin{equation} \label{eq:general_bright}
   \begin{split} 
@@ -322,7 +313,7 @@ The variance of a space object's observed brightness whose mean is determined by
   \end{split}
 \end{equation}
 
-The sensor noise is approximated by the independent combination of Poisson dark current $\lambda_\text{dark}$ and readout noise $\sigma_\text{read}^2$ \cite{krag2003}:
+The sensor noise is approximated by the independent combination of Poisson dark current $\lambda_\text{dark}$ and zero-mean Gaussian readout noise $\sigma_\text{read}^2$ \cite{krag2003}:
 
 \begin{equation} \label{eq:sensor_noise}
   \sigma_\text{sensor}^2 = n_\text{pix} \left( \Delta t \cdot \lambda_\text{dark} + \sigma_\text{read}^2 \right).
@@ -368,7 +359,7 @@ To demonstrate the effectiveness of our inversion method, we first present resul
 
 \subsection{Generating the Observed Light Curve}
 
-In order to make this simulated case realistic, we use the presented measurement noise models and introduce a mismatch between the ground truth object used to generate the measurements and the model used in inversion. We produce a noisy, observed light curve for a high-fidelity model of the Saturn V second stage scaled down by a factor $10/3$ to act as a template rocket body object, shown on the right of Figure \ref{fig:rb_models}.
+In order to make this simulated case realistic, we use the presented measurement noise models and introduce a mismatch between the ground truth object used to generate the measurements and the model used in inversion. The selected object is a high-fidelity model of the Saturn V second stage scaled down by a factor $10/3$ to act as a template rocket body object, shown on the right of Figure \ref{fig:rb_models}
 
 % \begin{figure}[H]
 %   \centering
@@ -377,33 +368,36 @@ In order to make this simulated case realistic, we use the presented measurement
 %   \label{fig:meas_model}
 % \end{figure}
 
-Table \ref{tb:case1_in} describes the simulated observation scenario, placing the rocket body in the orbit of an SL-12 upper stage in geosynchronous orbit, observed by the Purdue Optical Ground Station. Relevant geographical and optical properties of this ground station are provided in the Appendix in Table \ref{tb:tele_info}. Table \ref{tb:synth_matprops} lists the material properties used in this test case.
+Table \ref{tb:case1_in} describes the simulated observation scenario used to produce the noisy light curve observations, placing the rocket body in the orbit of an SL-12 upper stage in geosynchronous orbit, observed by the Purdue Optical Ground Station. Relevant geographical and optical properties of this ground station are provided in the Appendix in Table \ref{tb:tele_info}. Table \ref{tb:synth_matprops} lists the material properties used in this test case.
 
 \begin{table}[H]
   \centering
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
   \caption{Simulated observation characteristics}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
- Target COSPAR ID & 1990-054D \\ \hline
- First obs.\ (UTC) & Mar 8, 2025 02:00:00.000 \\ \hline
- Light curve duration & $5$ minutes \\ \hline
- Observations & $100$ \\ \hline
- Integration time & $0.5$ seconds \\ \hline
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    Target COSPAR ID & 1990-054D \\ \grule
+    First obs.\ (UTC) & Mar 8, 2025 02:00:00.000 \\ \grule
+    Light curve duration & $5$ minutes \\ \grule
+    Observations & $100$ \\ \grule
+    Integration time & $0.5$ seconds \\ \brule
   \end{tabular}
   \label{tb:case1_in}
 \end{table}
 
+
 \begin{table}[H]
   \centering
-  \caption{Reflection properties of materials used in the synthetic data test case. The white paint parameters are estimated qualitatively}
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
+  \caption{Reflection properties of materials used in the synthetic data test case. The white paint parameters are estimated qualitatively.}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|l|l|}
-  \hline
-  \textbf{Material} & $C_d$ & $C_s$ & $n$ \\ \hline
- Aluminum \cite{fankhauser2023} & $0.34$ & $0.40$ & $8.9$ \\ \hline
- White paint & $0.9$ & $0.1$ & $1$ \\ \hline
+  \begin{tabular}{@{} l l l l @{}}
+    \toprule
+    Material & $C_d$ & $C_s$ & $n$ \\ \midrule
+    Aluminum \cite{fankhauser2023} & $0.34$ & $0.40$ & $8.9$ \\ \arrayrulecolor{darkgray}\cmidrule(){1-4}
+    White paint & $0.9$ & $0.1$ & $1$ \\ \brule
   \end{tabular}
   \label{tb:synth_matprops}
 \end{table}
@@ -412,19 +406,21 @@ The ground truth attitude profile and inertia tensor ratios of the simulated obj
 
 \begin{table}[H]
   \centering
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
   \caption{True object attitude profile for all test cases}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
- Initial $\vctr{p}(0)$ & $-\frac{1}{3} \begin{bmatrix} 1 & 1 & 1 \end{bmatrix}^T$ \\ \hline
- True $\vctr{\omega}(0)$ ($\text{rad}\cdot\text{s}^{-1}$) & $\vctr{\omega}(0) = \begin{bmatrix} 0.03 & 0.06 & 0.03 \end{bmatrix}^T$ \\ \hline
- Inertia tensor ratios & $J_y / J_x = 1, \: J_z / J_x = 0.25$ \\ \hline
- External torque $\vctr{M}$ & $\begin{bmatrix} 0 & 0 & 0 \end{bmatrix}^T$ \\ \hline
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    Initial $\vctr{p}(0)$ & $-\frac{1}{3} \begin{bmatrix} 1 & 1 & 1 \end{bmatrix}^T$ \\ \grule
+    True $\vctr{\omega}(0)$ ($\text{rad}\cdot\text{s}^{-1}$) & $\vctr{\omega}(0) = \begin{bmatrix} 0.03 & 0.06 & 0.03 \end{bmatrix}^T$ \\ \grule
+    Inertia tensor ratios & $J_y / J_x = 1, \: J_z / J_x = 0.25$ \\ \grule
+    External torque $\vctr{M}$ & $\begin{bmatrix} 0 & 0 & 0 \end{bmatrix}^T$ \\ \brule
   \end{tabular}
   \label{tb:synth_att}
 \end{table}
 \FloatBarrier
+
 
 Simulating the mean light curve and its approximate probability distribution via Equation \ref{eq:lc_dist} produces the light curve displayed in V-band magnitude in Figure \ref{fig:obs_mag_synth}.
 
@@ -460,41 +456,44 @@ To emulate the reality that the precise geometry of the observed object is usual
   \label{fig:rb_models}
 \end{figure}
 
-Two distinct inversion cases are computed. Case 1a presents inversion results given no attitude information besides an estimate of the inertia tensor ratios derived from the known geometry, while Case 1b presents results given good initial guesses for orientation and angular velocity. Tables \ref{tb:case1a_prior} and \ref{tb:case1b_prior} summarize the initial condition sampling strategies employed for each case.
+Two distinct inversion cases are computed. Case 1a presents inversion results given no attitude information besides an estimate of the inertia tensor ratios derived from the known geometry, while Case 1b presents results given good prior attitude state distributions. Tables \ref{tb:case1a_prior} and \ref{tb:case1b_prior} summarize the initial condition sampling strategies employed for each case.
 
-For both cases, a total of $n_\text{guess}=10^5$ initial state guesses are created via the sampling schemes described their respective tables. BFGS minimization is then performed for each initial guess to locally solve the optimization problem given by Equation \ref{eq:opt_problem}.
+For both cases, a total of $n_\text{sample}=10^5$ initial state samplees are created via the sampling schemes described their respective tables. BFGS minimization is then performed for each initial state sample to locally solve the optimization problem given by Equation \ref{eq:opt_problem}.
 
 \begin{table}[H]
   \centering
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
   \caption{Initial condition sampling parameters used for inversion in Case 1a}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
-  $\vctr{p}$ sampling & Uniform, via Equation \ref{eq:mrp_sampler} \\ \hline
-  $\vctr{\omega}$ sampling & Uniform, via Equation \ref{eq:omega_sampler} \\ \hline
-  $J$ sampling & Gaussian, via Equation \ref{eq:omega_sampler} \\ \hline
-  $\sigma_J$ & $0.05$ $[\text{nondim}]$ \\ \hline
-  $\norm{\vctr{\omega}}_\text{max}$ & $5.26$ $[\text{deg}\cdot \text{s}^{-1}]$ \\ \hline
-\end{tabular}
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    $\vctr{p}$ sampling & Uniform, via Equation \ref{eq:mrp_sampler} \\ \grule
+    $\vctr{\omega}$ sampling & Uniform, via Equation \ref{eq:omega_sampler} \\ \grule
+    $J$ sampling & Gaussian, via Equation \ref{eq:omega_sampler} \\ \grule
+    $\sigma_J$ & $0.1$ $[\text{nondim}]$ \\ \grule
+    $\norm{\vctr{\omega}}_\text{max}$ & $5.26$ $[\text{deg}\cdot \text{s}^{-1}]$ \\ \brule
+  \end{tabular}
   \label{tb:case1a_prior}
 \end{table}
 
+
 \begin{table}[H]
   \centering
-  \caption{Informative prior parameters used for inversion in Case 1b. The standard deviations $\sigma_\omega$ and $\sigma_J$ are for spherically-symmetric Gaussians with centered on the ground truth. MRPs are sampled by rotating by $\theta\sim \mathcal{N}(0,\sigma_p)$ degrees away from the ground truth orientation around an axis uniformly sampled on the sphere.}
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
+  \caption{Informative prior parameters used for inversion in Case 1b. The standard deviations $\sigma_\omega$ and $\sigma_J$ are for spherically-symmetric Gaussians centered on the ground truth. MRPs are sampled by rotating by $\theta\sim \mathcal{N}(0,\sigma_p)$ degrees away from the ground truth orientation around an axis uniformly sampled on the sphere.}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
-  $\vctr{p}$ sampling & Gaussian, $\sigma_\omega = 0.05$ $[\text{deg}\cdot\text{s}^{-1}]$ \\ \hline
-  $\vctr{\omega}$ sampling & Gaussian, $\sigma_p=20$ $[\text{deg}]$ \\ \hline
-  $J$ sampling & Gaussian, $\sigma_J = 0.05$ $[\text{nondim}]$ \\ \hline
-\end{tabular}
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    $\vctr{p}$ sampling & Gaussian, $\sigma_p=20$ $[\text{deg}]$ \\ \grule
+    $\vctr{\omega}$ sampling & Gaussian, $\sigma_\omega = 0.1$ $[\text{deg}\cdot\text{s}^{-1}]$ \\ \grule
+    $J$ sampling & Gaussian, $\sigma_J = 0.05$ $[\text{nondim}]$ \\ \brule
+  \end{tabular}
   \label{tb:case1b_prior}
 \end{table}
 
-Solutions are then classified as candidates for the ground truth with $\ell = 1/10$ via Equation \ref{eq:ell_selection_criteria}. Figure \ref{fig:conv_lcs_synth} shows the mean light curves produced by the identified candidate solutions. There is good agreement between the candidate light curves and the observations, indicating that high-quality local minima have been identified.
+Solutions are then classified as candidates for the ground truth with $\ell = 1/2$ via Equation \ref{eq:ell_selection_criteria}. Figure \ref{fig:conv_lcs_synth} shows the mean light curves produced by the identified candidate solutions. There is good agreement between the candidate light curves and the observations, indicating that high-quality local minima have been identified.
 
 \begin{figure}[H]
   \centering
@@ -503,9 +502,9 @@ Solutions are then classified as candidates for the ground truth with $\ell = 1/
   \label{fig:conv_lcs_synth}
 \end{figure}
 
-Figures \ref{fig:sigma_sols1} and \ref{fig:omega_sols1} display the candidate MRP and angular velocity of the candidate solutions determined via the procedure in Section \ref{sec:candidate_sols}. In the left Case 1a figures for orientation and angular velocity, we notice that the ground truth lies squarely on a surface containing numerous candidate solution. This indicates that the local minima have correctly converged to the non-singular subspace of states that approximate the observations well for the assumed shape model. In angular velocity space, shown in Figure \ref{fig:omega_sols1}, most solutions fall onto the surface of two open-ended cylinders -- one with half the radius of the larger cylinder containing the truth. Similarly in orientation space, shown in Figure \ref{fig:sigma_sols1}, the solutions fall on two distinct manifolds, one containing the truth -- likely resulting from a reflection of the object's body frame about the bisector between the Sun and observer vectors \cite{marto2024, burton2024journal}. These additional families of solutions highlight the reality that a wide variety of attitude profiles may produce nearly identical observations.
+Figures \ref{fig:sigma_sols1} and \ref{fig:omega_sols1} display the candidate MRP and angular velocity of the candidate solutions determined via the procedure in Section \ref{sec:candidate_sols}. In the left Case 1a figures for orientation and angular velocity, we notice that the ground truth in red lies squarely on a surface containing numerous candidate solutions. This indicates that the local minima have correctly converged to the non-singular subspace of states that approximate the observations well for the assumed shape model. In angular velocity space, shown in Figure \ref{fig:omega_sols1}, most solutions fall onto the surface of two open-ended cylinders -- one with half the radius of the larger cylinder containing the truth. Similarly in orientation space, shown in Figure \ref{fig:sigma_sols1}, the solutions fall on two distinct manifolds, one containing the truth -- likely resulting from a reflection of the object's body frame about the bisector between the Sun and observer vectors \cite{marto2024, burton2024journal}. These additional families of solutions highlight the reality that a wide variety of attitude profiles can produce nearly identical observations.
 
-The Case 1b results on the right within Figures \ref{fig:sigma_sols1} and \ref{fig:omega_sols1} show that the majority of the initial guesses sampled close to the truth have converged to a local subset of the solution manifolds identified by Case 1a. We should not expect these solutions to have shrunk down exponentially towards the ground truth -- the mismatch in the assumed shape model and the measurement noise inherently limits the minimum size of the feasible solution space.
+The Case 1b results on the right within Figures \ref{fig:sigma_sols1} and \ref{fig:omega_sols1} show that the majority of the initial states sampled close to the truth have converged to a local subset of the solution manifolds identified by Case 1a. We should not expect these solutions to have shrunk down exponentially towards the ground truth -- the mismatch in the assumed shape model and the measurement noise inherently limits the minimum size of the feasible solution space.
 
 \begin{figure}[H]
   \centering
@@ -518,7 +517,7 @@ The Case 1b results on the right within Figures \ref{fig:sigma_sols1} and \ref{f
   \hfill
   \begin{subfigure}[t]{0.23\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{sigma_solsRocket Body Prior.png}
+    \includegraphics[width=\textwidth]{sigma_solsRocket Body Prior_pin.png}
     \caption{}
     \label{fig:sigma_sols1b}
   \end{subfigure}
@@ -531,14 +530,14 @@ The Case 1b results on the right within Figures \ref{fig:sigma_sols1} and \ref{f
   \centering
   \begin{subfigure}[t]{0.23\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{omega_sols_Rocket Body.png}
+    \includegraphics[width=\textwidth]{omega_sols_Rocket Body_pin.png}
     \caption{}
     \label{fig:omega_sols1a}
   \end{subfigure}
   \hfill
   \begin{subfigure}[t]{0.23\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{omega_sols_Rocket Body Prior.png}
+    \includegraphics[width=\textwidth]{omega_sols_Rocket Body Prior_pin.png}
     \caption{}
     \label{fig:omega_sols1b}
   \end{subfigure}
@@ -546,8 +545,7 @@ The Case 1b results on the right within Figures \ref{fig:sigma_sols1} and \ref{f
   \label{fig:omega_sols1}
 \end{figure}
 
-Figure \ref{fig:i_sols1} displays the inertia tensor solutions for Cases 1a and 1b. Notably, the majority of candidate solutions remain within a few standard deviations of the mean of their initial distribution, with the remaining minority exploring directions that maintain the same precession rate. When a good initial guess for the other attitude state components is available in Case 1b, the inertia tensor solutions are more well-clustered, although due to the low observability of the rocket body's spin rate in the observed light curve, there are still ambiguous solutions with higher or lower $J_z / J_x$ values.
-
+Figure \ref{fig:i_sols1} displays the inertia tensor solutions for Cases 1a and 1b. Notably, the majority of candidate solutions remain within a few standard deviations of the mean of their initial distribution, with the remaining minority exploring directions that maintain the same precession rate. When a good prior for the other attitude state components is available in Case 1b, the inertia tensor solutions are more well-clustered, although due to the low observability of the rocket body's spin rate in the observed light curve, there are still ambiguous solutions with higher or lower $J_z / J_x$ values.
 
 \begin{figure}[H]
   \centering
@@ -568,7 +566,7 @@ Figure \ref{fig:i_sols1} displays the inertia tensor solutions for Cases 1a and 
   \label{fig:i_sols1}
 \end{figure}
 
-Figure \ref{fig:w_vs_ang_error_sols1} summarizes the distribution of candidate solutions with respect to the ground truth by displaying the angular velocity magnitude error and angular orientation error compared to the ground truth. Case 1a shows significant variability in angular velocity magnitude, although the mean error is low at $2\%$. Due to the underdetermined orientation solution space, there are far more solutions at high angular offsets from the truth orientation, leading to a large mean angular error of $127^\circ$. For Case 1b, the mean angular error is much lower at $25^\circ$, although convergence here is still inherently limited by the noisy measurements and model mismatch.
+Figure \ref{fig:w_vs_ang_error_sols1} summarizes the distribution of candidate solutions with respect to the ground truth by displaying the angular velocity magnitude error and angular orientation error compared to the ground truth. Case 1a shows significant variability in angular velocity magnitude, although this is almost entirely due to the unobservability of the spin rate about the object's axis of symmetry in the light curve. The mean precession rate error is low at $0.3\%$. Due to the underdetermined orientation solution space, there are far more solutions at high angular offsets from the truth orientation, leading to a large mean angular error of $126^\circ$. For Case 1b, the mean orientation error is much lower at $18^\circ$, although convergence here is still inherently limited by the noisy measurements and model mismatch.
 
 \begin{figure}[H]
   \centering
@@ -633,17 +631,18 @@ Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=
 
 \begin{table}[H]
   \centering
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
   \caption{Delta I rocket body observation characteristics}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
- Target COSPAR ID & 1984-115C \\ \hline
- First obs.\ (UTC) & Mar 2, 2025 01:53:30.251 \\ \hline
- Light curve duration & $7.5$ minutes \\ \hline
- Observations & $100$ ($92$ extracted) \\ \hline
- Obs.\ frequency & $0.222$ Hz \\ \hline
- Integration time & $3$ seconds \\ \hline
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    Target COSPAR ID & 1984-115C \\ \grule
+    First obs.\ (UTC) & Mar 2, 2025 01:53:30.251 \\ \grule
+    Light curve duration & $7.5$ minutes \\ \grule
+    Observations & $100$ ($92$ extracted) \\ \grule
+    Obs.\ frequency & $0.222$ Hz \\ \grule
+    Integration time & $3$ seconds \\ \brule
   \end{tabular}
   \label{tb:case2_in}
 \end{table}
@@ -655,19 +654,20 @@ Here, we choose the inner radius to be $r_i=0.45d$, the outer radius to be $r_o=
   \label{fig:rb_lc_obs}
 \end{figure}
 
-This light curve shows clear periodicity, but has a high measurement standard deviation and a relatively low sampling rate due to the object's low brightness and the sensor readout time. Inversion is performed using $n_\text{guess}=10^4$ initial guesses with the material and angular velocity assumptions listed in Table \ref{tb:case2_ass}. As in Case 1a, orientation and angular velocity initial guesses are sampled via Equations \ref{eq:mrp_sampler} and \ref{eq:omega_sampler}, respectively. All initial inertia tensor guesses are set to the estimated $J_\text{R/B}$. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case2_s}, orientation MRPs and angular velocities in Figure \ref{fig:case2_pw}, and inertia ratios in Figure \ref{fig:case2_i}.
+This light curve shows clear periodicity, but has a high measurement standard deviation and a relatively low sampling rate due to the object's low brightness and the sensor readout time. Inversion is performed using $n_\text{sample}=10^4$ samples with the material and angular velocity assumptions listed in Table \ref{tb:case2_ass}. As in Case 1a, orientation and angular velocity states are sampled via Equations \ref{eq:mrp_sampler} and \ref{eq:omega_sampler}, respectively. All initial inertia tensor samples are set to the estimated $J_\text{R/B}$. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case2_s}, orientation MRPs and angular velocities in Figure \ref{fig:case2_pw}, and inertia ratios in Figure \ref{fig:case2_i}.
 
 \begin{table}[H]
   \centering
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
   \caption{Delta I rocket body inversion assumptions}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
- Uniform BRDF & $C_d=0.2$, $C_s=0.8$, $n=30$ \\ \hline
- $\norm{\vctr{\omega}}_\text{max}$ & $8.31$ $\text{deg} \cdot \text{s}^{-1}$ \\ \hline
- $\ell$ & $1/100$ \\ \hline
-\end{tabular}
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    Uniform BRDF & $C_d=0.2$, $C_s=0.8$, $n=30$ \\ \grule
+    $\norm{\vctr{\omega}}_\text{max}$ & $6.93$ $\text{deg} \cdot \text{s}^{-1}$ \\ \grule
+    $\ell$ & $1/100$ \\ \brule
+  \end{tabular}
   \label{tb:case2_ass}
 \end{table}
 
@@ -696,7 +696,7 @@ This light curve shows clear periodicity, but has a high measurement standard de
   \hfill
   \begin{subfigure}[t]{0.23\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{sphx_glr_results_005.png}
+    \includegraphics[width=\textwidth]{delta_ang_vel_pin.png}
     \caption{}
     \label{fig:case2_pwb}
   \end{subfigure}
@@ -719,7 +719,7 @@ This light curve shows clear periodicity, but has a high measurement standard de
   \label{fig:case2_i}
 \end{figure}
 
-The candidate solutions identified by the inversion process produce light curves which adequately approximate the measurements, although they do not reach the lowest observed values. This indicates that the true material is more dominated by specular reflections than our assumed coefficients. The candidates show some rough clustering in both orientation and angular velocity space, although they vary significantly in angular velocity magnitude. The inertia tensor solutions display similar variability, although the solutions are spread relatively uniformly from the initial guess, possibly indicating that the geometry-driven estimate is approximately unbiased. Taken together, these results indicate that the object could be spinning in a number of attitude profiles, although the light curve inversion process has significantly narrowed the search space to small subsets of the original unconstrained eight-dimensional volume. These constraints may be combined with additional light curves, more information about the object's true mass distribution, or reflectivity to further refine the solution set.
+The candidate solutions identified by the inversion process produce light curves which adequately approximate the measurements, although they do not reach the lowest observed values. This indicates that the true material is more dominated by specular reflections than our assumed coefficients. The candidates show some rough clustering in both orientation and angular velocity space, although they vary significantly in angular velocity magnitude. The inertia tensor solutions display similar variability, although the solutions are spread relatively uniformly from the initial estimate, possibly indicating that the geometry-driven estimate is approximately unbiased. Taken together, these results indicate that the object could be spinning in a number of attitude profiles, although the light curve inversion process has significantly narrowed the search space to small subsets of the original unconstrained eight-dimensional volume. These constraints can be combined with additional light curves, more information about the object's true mass distribution, or reflectivity to further refine the solution set.
 
 \subsection{Case 3: ECHOSTAR II}
 
@@ -766,17 +766,18 @@ Table \ref{tb:case2_in} summarizes the light curve observations that result in t
 
 \begin{table}[H]
   \centering
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
   \caption{ECHOSTAR II observation characteristics}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
- Target COSPAR ID & 1996-055A \\ \hline
- First obs.\ (UTC) & Feb 26, 2025 04:16:12.279 \\ \hline
- Light curve duration & $19.5$ minutes \\ \hline
- Observations & $456$ ($395$ extracted) \\ \hline
- Obs.\ frequency & $0.388$ Hz \\ \hline
- Integration time & $1$ seconds \\ \hline
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    Target COSPAR ID & 1996-055A \\ \grule
+    First obs.\ (UTC) & Feb 26, 2025 04:16:12.279 \\ \grule
+    Light curve duration & $19.5$ minutes \\ \grule
+    Observations & $456$ ($395$ extracted) \\ \grule
+    Obs.\ frequency & $0.388$ Hz \\ \grule
+    Integration time & $1$ seconds \\ \brule
   \end{tabular}
   \label{tb:case3_in}
 \end{table}
@@ -788,20 +789,21 @@ Table \ref{tb:case2_in} summarizes the light curve observations that result in t
   \label{fig:sat_lc_obs}
 \end{figure}
 
-This light curve is sampled more densely than the Delta I observations, and clearly has significantly more intense specular peaks. Inversion is performed using $n_\text{guess}=10^4$ initial guesses with the material and angular velocity assumptions listed in Table \ref{tb:case3_ass}. Initial guess sampling is accomplished identically to Case 2, with a different maximum angular veloity and initial inertia ratios. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case3_s}, orientation MRPs and angular velocities in Figure \ref{fig:case3_pw}, and inertia ratios in Figure \ref{fig:case3_i}. Since the light curve spans three orders of magnitude with a high signal-to-noise ratio, the shape and material mismatch produces specular peaks that are good fits, but are possibly hundreds of standard deviations away from the computed measurement distribution. To combat this, $\ell$ is selected to be much more permissive in selecting candidate solutions compared to previous cases.
+This light curve is sampled more densely than the Delta I observations, and clearly has significantly more intense specular peaks. Inversion is performed using $n_\text{sample}=10^4$ samples with the material and angular velocity assumptions listed in Table \ref{tb:case3_ass}. Initial state sampling is accomplished identically to Case 2, with a different maximum angular veloity and initial inertia ratios. The candidate solution results are presented in terms of their mean light curves in Figure \ref{fig:case3_s}, orientation MRPs and angular velocities in Figure \ref{fig:case3_pw}, and inertia ratios in Figure \ref{fig:case3_i}. Since the light curve spans three orders of magnitude with a high signal-to-noise ratio, the shape and material mismatch produces specular peaks that are good fits, but are possibly hundreds of standard deviations away from the computed measurement distribution. To combat this, $\ell$ is selected to be much more permissive in selecting candidate solutions compared to previous cases.
 
 \begin{table}[H]
   \centering
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
   \caption{ECHOSTAR II inversion assumptions}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
- Aluminum BRDF & $C_d=0.22$, $C_s=0.4$, $n=5$ \\ \hline
- MLI BRDF & $C_d=0.05$, $C_s=0.24$, $n=20$ \\ \hline
- Solar panel BRDF & $C_d=0.05$, $C_s=0.13$, $n=10$ \\ \hline
-  $\norm{\vctr{\omega}}_\text{max}$ & $2.32$ $\text{deg} / \text{s}^{-1}$ \\ \hline
-  $\ell$ & $1/1000$ \\ \hline
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    Aluminum BRDF & $C_d=0.22$, $C_s=0.4$, $n=5$ \\ \grule
+    MLI BRDF & $C_d=0.05$, $C_s=0.24$, $n=20$ \\ \grule
+    Solar panel BRDF & $C_d=0.05$, $C_s=0.13$, $n=10$ \\ \grule
+    $\norm{\vctr{\omega}}_\text{max}$ & $2.32$ $\text{deg} / \text{s}^{-1}$ \\ \grule
+    $\ell$ & $1/1000$ \\ \brule
   \end{tabular}
   \label{tb:case3_ass}
 \end{table}
@@ -840,7 +842,6 @@ This light curve is sampled more densely than the Delta I observations, and clea
   \label{fig:case3_pw}
 \end{figure}
 
-
 % \begin{figure}[H]
 %   \centering
 %   \includegraphics[width=\figmed]{sphx_glr_results_008.png}
@@ -859,7 +860,21 @@ The candidate solutions identified by the inversion process are more sparse than
 
 \section{Conclusion}
 
-Attitude information is critical for many tasks informing space situational awareness. Orientation and angular velocity data aids high-fidelity orbit propagation, mission recovery efforts, and object selection for active debris removal. Obtaining attitude information is often difficult, especially for passive debris objects. Due to atmospheric distortion and diffraction-limited optics, ground-based telescopes can only determine a total brightness received from a space object. If a shape model is known, the light curve -- a sequence of these brightness measurements -- is one tool for attitude estimation. We presented an approach for solving this highly nonlinear and non-convex optimization problem with a gradient-based multi-start method. We presented attitude inversion results for one case with synthetic data and two cases with real observations. Unlike other approaches, our method successfully identifies the numerous ambiguous solutions families -- originating from symmetries in the observation geometry and the object shape -- which may produce the same observations. These disparate candidate solutions can serve as starting points for more detailed exploration as additional light curves or further object shape information is obtained.
+Attitude information is critical for many tasks informing space situational awareness. Orientation and angular velocity data aids high-fidelity orbit propagation, mission recovery efforts, and object selection for active debris removal. Obtaining attitude information is often difficult, especially for passive debris objects. Due to atmospheric distortion and diffraction-limited optics, ground-based telescopes can only determine a total brightness received from a space object. If a shape model is known, the light curve -- a sequence of these brightness measurements -- is one tool for attitude estimation. We presented an approach for solving this highly nonlinear and non-convex optimization problem with a gradient-based multi-start method. We presented attitude inversion results for one case with synthetic data and two cases with real observations. Unlike other approaches, our method successfully identifies the numerous ambiguous solutions families -- originating from symmetries in the observation geometry and the object shape -- which can produce the same observations. These disparate candidate solutions can serve as starting points for more detailed exploration as additional light curves or further object shape information is obtained.
+
+\section{Global TODO list}
+
+\begin{itemize}
+  % \item Add the constant term back into the objective function (in text and code) so we can start treating it as a real likelihood, useful for the future
+  \item Mention the unknown solar panel rotation angle for ECHOSTAR
+  \item make a table of execution times
+  % \item Update perspective on some the case 1a angular velocity plot
+  % \item Update $n_\text{sample}$ values everywhere to reflect the scripts
+  % \item Update $\omega$ sampling scheme to go from $0.5-2$ as reflected in scripts
+  % \item Re-run all cases to ensure that values are up to date with recent changes, update where those statistics are reported in the text
+  \item Try to get rid of big gaps where possible
+  % \item Reformat tables so they're attractive to look at
+\end{itemize}
 
 \section*{Acknowledgments}
 
@@ -869,38 +884,40 @@ This work was partially supported by a National Defense Science and Engineering 
 
 \begin{table}[H]
   \centering
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
   \caption{Telescope information for synthetic and real data observations}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
- CCD sensor & KAF-16803 \\ \hline
- Effective aperture area $A_\circ$ & $0.076$ $m^2$ \\ \hline
- Observer location & $32.900^\circ \textrm{ N}, -105.533^\circ \textrm{ W}$ \\ \hline
- Observer altitude & $2.24$ km above MSL \\ \hline
- Source pixels $n_\text{pix}$ & $100$ \\ \hline
- Read noise $\sigma_\text{read}$ & $9$ $\text{ADU} / \text{pixel}$ \\ \hline
- Dark current rate $\lambda_\text{dark}$ & $0.01$ $\text{ADU} / \text{pixel} / \text{s}$ \\ \hline
- Flat field strength $f_k$ & $0.01$ nondim \\ \hline
- Gain $g$ & $5.1$ $e^- / \text{ADU}$ \\ \hline
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    CCD sensor & KAF-16803 \\ \grule
+    Aperture area ($A_\circ$) & $0.076$ m$^2$ \\ \grule
+    Observer location & $32.900^\circ$ N, $-105.533^\circ$ W \\ \grule
+    Observer altitude & $2.24$ km above MSL \\ \grule
+    Read noise ($\sigma_\text{read}$) & $9$ ADU/pixel \\ \grule
+    Dark current rate ($\lambda_\text{dark}$) & $0.01$ ADU/pixel/s \\ \grule
+    Flat field strength ($f_k$) & $0.01$ (dimensionless) \\ \grule
+    Gain ($g$) & $5.1$ e$^-$/ADU \\ \brule
   \end{tabular}
   \label{tb:tele_info}
- \end{table}
+\end{table}
 
- \begin{table}[H]
+\begin{table}[H]
   \centering
+  \renewcommand{\arraystretch}{1.3} % Increase row height for better readability
   \caption{BFGS solver configuration for all results cases}
   \vspace*{6pt}
-  \begin{tabular}{|l|l|}
-  \hline
-  \textbf{Variable} & \textbf{Value} \\ \hline
- Maximum function evaluations & $1000$ \\ \hline
- Maximum iterations & $100$ \\ \hline
- Finite difference step size & $1 \cdot 10^{-5}$ \\ \hline
- Gradient $\infty$-norm tolerance & $1 \cdot 10^{-5}$ \\ \hline
+  \begin{tabular}{@{} l l @{}}
+    \toprule
+    Variable & Value \\ \midrule
+    Maximum function evaluations & $1000$ \\ \grule
+    Maximum iterations & $100$ \\ \grule
+    Finite difference step size & $1 \cdot 10^{-5}$ \\ \grule
+    Gradient $\infty$-norm tolerance & $1 \cdot 10^{-5}$ \\ \brule
   \end{tabular}
   \label{tb:bfgs_info}
- \end{table}
+\end{table}
+
 
 \bibliography{cache/refs.bib}
 \end{document}
